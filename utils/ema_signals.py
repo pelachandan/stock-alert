@@ -6,113 +6,81 @@ def get_ema_signals(ticker):
     Detects bullish EMA crossover (20>50 while 50>200) within last 20 days.
     Returns a dictionary with ticker info if 5–10% above crossover, else None.
     """
-     df = compute_ema_incremental(ticker)
-
+    df = compute_ema_incremental(ticker)
     if df.empty or len(df) < 210:
         return None
 
     df = df.copy()
     df["EMA200_slope"] = df["EMA200"] - df["EMA200"].shift(5)
     df["AvgVolume20"] = df["Volume"].rolling(20).mean()
+    df["VolumeRatio"] = df["Volume"] / df["AvgVolume20"]
+    df["RSI14"] = compute_rsi(df["Close"], period=14)
+    df["PriceMomentum5"] = (df["Close"] - df["Close"].shift(5)) / df["Close"].shift(5)
 
-    current_price = df.iloc[-1]["Close"]
-    current_volume = df.iloc[-1]["Volume"]
-    avg_volume = df.iloc[-1]["AvgVolume20"]
+    # --- Vectorized crossover detection ---
+    df["BullishCross"] = (df["EMA20"] > df["EMA50"]) & (df["EMA20"].shift(1) <= df["EMA50"].shift(1))
 
-    if current_volume < 1.2 * avg_volume:
+    # --- Vectorized filters ---
+    mask = (
+        df["BullishCross"] &
+        (df["EMA50"] > df["EMA200"]) &
+        (df["EMA200_slope"] > 0) &
+        (df["VolumeRatio"] >= 1.2) &
+        (df["RSI14"] < 70)
+    )
+
+    # Only consider last 20 days
+    df_filtered = df[mask].tail(20)
+
+    if df_filtered.empty:
         return None
 
-    for i in range(-20, 0):
-        today = df.iloc[i]
-        yesterday = df.iloc[i - 1]
+    # Pick the last crossover signal
+    today = df_filtered.iloc[-1]
+    current_price = df.iloc[-1]["Close"]
 
-        if any(pd.isna([today["EMA20"], today["EMA50"], today["EMA200"], today["EMA200_slope"]])):
-            continue
+    crossover_price = today["Close"]
+    pct_above_cross = (current_price - crossover_price) / crossover_price * 100
+    pct_above_ema200 = (current_price - today["EMA200"]) / today["EMA200"] * 100
 
-        crossed = yesterday["EMA20"] <= yesterday["EMA50"] and today["EMA20"] > today["EMA50"]
-        if not crossed:
-            continue
+    if not (5 <= pct_above_cross <= 10 and 5 <= pct_above_ema200 <= 10):
+        return None
 
-        if today["EMA50"] <= today["EMA200"]:
-            continue
+    # --- Momentum-adjusted score ---
+    score = compute_momentum_adjusted_score(today, pct_above_cross, pct_above_ema200)
 
-        if today["EMA200_slope"] <= 0:
-            continue
+    return {
+        "Ticker": ticker,
+        "CrossoverDate": str(today.name.date()),
+        "CrossoverPrice": round(crossover_price, 2),
+        "CurrentPrice": round(current_price, 2),
+        "PctAboveCrossover": round(pct_above_cross, 2),
+        "PctAboveEMA200": round(pct_above_ema200, 2),
+        "EMA20": round(today["EMA20"], 2),
+        "EMA50": round(today["EMA50"], 2),
+        "EMA200": round(today["EMA200"], 2),
+        "VolumeRatio": round(today["VolumeRatio"], 2),
+        "Score": score,
+    }
 
-        # --- Improvement1: Additional filter example (RSI < 70) ---
-        if not improvement1(today, df):
-            continue
-
-         # --- RSI Filter ---
-        if not rsi_filter(df, i):
-            continue
-
-        crossover_price = today["Close"]
-        pct_above_cross = (current_price - crossover_price) / crossover_price * 100
-        pct_above_ema200 = (current_price - today["EMA200"]) / today["EMA200"] * 100
-
-        if not (5 <= pct_above_cross <= 10 and 5 <= pct_above_ema200 <= 10):
-            continue
-
-        # --- Momentum-adjusted scoring ---
-        score = compute_momentum_adjusted_score(today, pct_above_cross, pct_above_ema200, current_volume, avg_volume, df)
-
-        return {
-            "Ticker": ticker,
-            "CrossoverDate": str(today.name.date()),
-            "CrossoverPrice": round(crossover_price, 2),
-            "CurrentPrice": round(current_price, 2),
-            "PctAboveCrossover": round(pct_above_cross, 2),
-            "PctAboveEMA200": round(pct_above_ema200, 2),
-            "EMA20": round(today["EMA20"], 2),
-            "EMA50": round(today["EMA50"], 2),
-            "EMA200": round(today["EMA200"], 2),
-            "VolumeRatio": round(current_volume / avg_volume, 2),
-            "Score": score,
-        }
-
-    return None
-
-# --- RSI Filter ---
-def rsi_filter(df, index, period=14, rsi_threshold=70):
-    """
-    Returns True if RSI < rsi_threshold
-    """
-    if index < period:
-        return True  # Not enough data to calculate RSI, allow it by default
-
-    delta = df["Close"].diff()
+# --- Optimized RSI ---
+def compute_rsi(series, period=14):
+    delta = series.diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
 
-    avg_gain = gain.rolling(period).mean()
-    avg_loss = loss.rolling(period).mean()
+    avg_gain = gain.ewm(alpha=1/period, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1/period, adjust=False).mean()
 
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1 + rs))
+    return rsi
 
-    # Check current RSI
-    current_rsi = rsi.iloc[index]
-    if pd.isna(current_rsi):
-        return True  # Treat NaN as pass
-    return current_rsi < rsi_threshold
+# --- RSI filter is now implicit in the vectorized mask ---
 
-def compute_momentum_adjusted_score(today, pct_cross, pct_ema200, current_vol, avg_vol, df):
-    """
-    Momentum-adjusted scoring:
-    - Base score: weighted pct_above_cross, pct_above_ema200, volume ratio
-    - Momentum boost: EMA200 slope + 5-day price change
-    """
-    # Base score (existing logic)
-    base_score = (pct_cross * 0.4) + (pct_ema200 * 0.4) + (min(current_vol/avg_vol, 3)*10*0.2)
-
-    # Momentum components
-    ema_slope_factor = today["EMA200_slope"] / today["EMA200"]  # long-term trend strength
-    price_momentum_factor = (today["Close"] - df["Close"].shift(5).iloc[today.name]) / df["Close"].shift(5).iloc[today.name]
-
-    # Normalize & cap momentum to avoid extreme boosts
-    momentum_factor = min(ema_slope_factor + price_momentum_factor, 0.1)  # cap at 10%
-    
-    # Final score
+# --- Momentum-adjusted scoring ---
+def compute_momentum_adjusted_score(today, pct_cross, pct_ema200):
+    base_score = (pct_cross * 0.4) + (pct_above_ema200 * 0.4) + (min(today["VolumeRatio"], 3) * 10 * 0.2)
+    momentum_factor = min(today["EMA200_slope"] / today["EMA200"] + today["PriceMomentum5"], 0.1)  # capped 10%
     final_score = round(base_score * (1 + momentum_factor), 2)
     return final_score
