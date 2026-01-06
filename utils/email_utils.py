@@ -43,7 +43,7 @@ def format_summary(ema_list, high_list):
 
 
 def send_email_alert(ema_list, high_list, subject_prefix="📊 Market Summary", custom_body=None):
-     """
+    """
     Sends an email with either a custom body or formatted summary of EMA and 52-week high signals.
     Signals are sorted by Score descending for priority.
     """
