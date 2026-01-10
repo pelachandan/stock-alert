@@ -3,7 +3,7 @@ import pandas as pd
 from config import MIN_MARKET_CAP, SP500_SOURCE
 from utils.market_data import get_market_cap
 from utils.ema_signals import get_ema_signals
-from utils.highs import check_new_high
+from utils.high_52w_strategy import score_52week_high_stock
 
 BACKOFF_BASE = 2
 MAX_RETRIES = 5
@@ -47,7 +47,7 @@ def run_scan(test_mode=False):
 
         # --- 52-Week High ---
         try:
-            high_result = check_new_high(ticker)
+            high_result = score_52week_high_stock(ticker)
             if high_result:
                 new_highs.append(high_result)
         except Exception as e:
