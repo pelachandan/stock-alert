@@ -115,6 +115,14 @@ def send_email_alert(
     else:
         body_html = "<h1>📊 Daily Market Scan</h1>"
 
+        # Pre-Buy Actionable Trades
+        body_html += df_to_html_table(
+            trade_df,
+            score_column="Score",
+            title="🔥 Pre-Buy Actionable Trades",
+            max_rows=5
+        )
+        
         # EMA Crossovers
         if ema_list:
             ema_df = pd.DataFrame(ema_list)
@@ -125,15 +133,7 @@ def send_email_alert(
                 max_rows=5
             )
         else:
-            body_html += "<p>No EMA crossovers today.</p>"
-
-        # Pre-Buy Actionable Trades
-        body_html += df_to_html_table(
-            trade_df,
-            score_column="Score",
-            title="🔥 Pre-Buy Actionable Trades",
-            max_rows=5
-        )
+            body_html += "<p>No EMA crossovers today.</p>"        
 
         # 52-Week High BUY-READY
         if high_buy_list:
