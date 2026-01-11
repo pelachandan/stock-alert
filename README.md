@@ -1,4 +1,4 @@
-# sma-stock-alert
+# stock-alert
 
 Daily SMA / EMA stock alert system (automated with GitHub Actions).
 
