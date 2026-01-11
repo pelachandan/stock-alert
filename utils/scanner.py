@@ -13,17 +13,26 @@ MAX_RETRIES = 5
 
 def run_scan(test_mode=False):
     """
-    Runs the complete SMA crossover + 52-week high scan.
+    Runs the complete SMA/EMA crossover + 52-week high + consolidation + relative strength scan.
     Sequential, with exponential backoff and retry.
     """
-    print("🚀 Running SMA crossover and 52-week high scan...")
 
+    print("🚀 Running full stock scan...")
+
+    # Load S&P500 tickers
     sp500 = pd.read_csv(SP500_SOURCE)
     tickers = sp500["Symbol"].tolist()
     if test_mode:
         tickers = tickers[:15]
 
-    ema_signals, new_highs = [], []
+    # --- Initialize output lists ---
+    ema_list = []
+    high_list = []
+    consolidation_list = []
+    rs_list = []
+
+    # Download benchmark for relative strength
+    benchmark_df = yf.download("SPY", period="3mo", interval="1d")
 
     for ticker in tickers:
         # --- Market Cap Check ---
@@ -44,38 +53,39 @@ def run_scan(test_mode=False):
         try:
             ema_result = get_ema_signals(ticker)
             if ema_result:
-                ema_signals.append(ema_result)
+                ema_list.append(ema_result)
         except Exception as e:
-            print(f"⚠️ [scanner.py] Error processing SMA for {ticker}: {e}")
+            print(f"⚠️ [scanner.py] Error processing EMA for {ticker}: {e}")
 
         # --- 52-Week High ---
         try:
             high_result = score_52week_high_stock(ticker)
             if high_result:
-                new_highs.append(high_result)
+                high_list.append(high_result)
         except Exception as e:
-            print(f"⚠️ [scanner.py] Error processing new high for {ticker}: {e}")
+            print(f"⚠️ [scanner.py] Error processing 52-week high for {ticker}: {e}")
 
-    # --- New: Consolidation Breakouts ---
-    consolidation_list = []
-    for t in tickers:
-        result = check_consolidation_breakout(t)
-        if result:
-            consolidation_list.append(result)
+        # --- Consolidation Breakout ---
+        try:
+            cons_result = check_consolidation_breakout(ticker)
+            if cons_result:
+                consolidation_list.append(cons_result)
+        except Exception as e:
+            print(f"⚠️ [scanner.py] Error processing consolidation breakout for {ticker}: {e}")
 
-    # --- New: Relative Strength ---
-    benchmark_df = yf.download("SPY", period="3mo", interval="1d")
-    rs_list = []
-    for t in tickers:
-        result = check_relative_strength(t, benchmark_df)
-        if result:
-            rs_list.append(result)
+        # --- Relative Strength ---
+        try:
+            rs_result = check_relative_strength(ticker, benchmark_df)
+            if rs_result:
+                rs_list.append(rs_result)
+        except Exception as e:
+            print(f"⚠️ [scanner.py] Error processing relative strength for {ticker}: {e}")
+
+    # --- Summary ---
+    print("✅ Scan completed!")
+    print(f"📈 EMA Crossovers: {len(ema_list)} stocks")
+    print(f"🔥 52-week Highs: {len(high_list)} stocks")
+    print(f"🔥 Consolidation Breakouts: {len(consolidation_list)} stocks")
+    print(f"🚀 Relative Strength Leaders: {len(rs_list)} stocks")
 
     return ema_list, high_list, consolidation_list, rs_list
-
-    print("✅ Scan completed!")
-    print(f"📈 EMA Crossovers: {ema_signals}")
-    print(f"🔥 New 52-week Highs: {new_highs}")
-    print(f"🔥 New Consolidation Breakouts: {consolidation_list}")
-    print(f"🔥 New Relative Strength Breakouts: {rs_list}")
-    return ema_signals, new_highs
