@@ -5,8 +5,10 @@ from utils.ema_utils import compute_ema_incremental, compute_rsi
 def check_consolidation_breakout(ticker, lookback=20):
     """
     Detects consolidation breakout:
-    - Stock has been trading in a tight range for `lookback` days
+    - Stock has been trading in a tight range for `lookback` days (<5% price range)
     - Breaks above the recent high with volume confirmation
+    - EMA trend confirmation and RSI filter
+    Returns a dict with breakout info and score if valid, else None
     """
     try:
         df = get_historical_data(ticker)
@@ -30,7 +32,7 @@ def check_consolidation_breakout(ticker, lookback=20):
         max_close = recent.max()
         min_close = recent.min()
         if (max_close - min_close) / min_close * 100 > 5:
-            return None  # Not tight range
+            return None  # Not a tight range
 
         # Breakout today
         close_today = df["Close"].iloc[-1]
@@ -48,14 +50,19 @@ def check_consolidation_breakout(ticker, lookback=20):
         if rsi14 > 75:
             return None
 
+        # ----------------------------
         # Score calculation
-        price_score = ((close_today - max_close) / max_close) * 100 * 0.4
+        # ----------------------------
+        price_score = ((close_today - max_close) / max_close * 100) * 0.4
         ema_score = 10 * 0.4 if ema20 > ema50 > ema200 else 0
         vol_score = min(vol_ratio, 3) * 10 * 0.2
         base_score = price_score + ema_score + vol_score
 
-        ema200_slope = ema200 - ema200_df_shift(ema_df, 5)
-        momentum_boost = min(ema200_slope / ema200 + (close_today - df["Close"].iloc[-6])/df["Close"].iloc[-6], 0.1)
+        # EMA200 slope and short-term price momentum for momentum boost
+        ema200_slope = (ema200 - ema_df["EMA200"].iloc[-6]) / ema200 if ema200 != 0 else 0
+        price_momentum_5d = (close_today - df["Close"].iloc[-6]) / df["Close"].iloc[-6]
+        momentum_boost = min(ema200_slope + price_momentum_5d, 0.1)  # capped at 10%
+
         final_score = round(base_score * (1 + momentum_boost), 2)
 
         return {
@@ -74,9 +81,3 @@ def check_consolidation_breakout(ticker, lookback=20):
     except Exception as e:
         print(f"⚠️ [consolidation_breakout] Error for {ticker}: {e}")
         return None
-
-def ema200_df_shift(ema_df, period):
-    """Helper to compute EMA200 slope"""
-    if len(ema_df) < period + 1:
-        return 0
-    return ema_df["EMA200"].iloc[-period-1]
