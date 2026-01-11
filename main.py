@@ -25,9 +25,14 @@ if __name__ == "__main__":
     # --------------------------------------------------
     # Step 3: Apply pre-sell checks on all strategies
     # --------------------------------------------------
+    # Pre-Sell Actionable Trades
     presell_list = []
-    for lst in [ema_list, high_list, consolidation_list, rs_list]:
-        presell_list.extend(lst if lst else [])
+
+    # Use low / breakdown / underperforming lists
+    presell_list.extend(ema_list if low_list else [])
+    presell_list.extend(low_list if low_list else [])
+    presell_list.extend(reverse_consolidation_list if reverse_consolidation_list else [])
+    presell_list.extend(reverse_rs_list if reverse_rs_list else [])    
     trade_short_ready = pre_sell_check(presell_list)
 
     # --------------------------------------------------
