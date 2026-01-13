@@ -18,9 +18,11 @@ class Backtester:
 
         trades_outcomes = []
 
-        # Loop through each day from start_date to today
+        # Loop through each business day from start_date to today
         all_days = pd.date_range(self.start_date, pd.Timestamp.today(), freq="B")
+
         for day in all_days:
+            # Run historical scanner for that day
             signals = run_scan_historical(as_of_date=day)
 
             if not signals:
@@ -31,7 +33,7 @@ class Backtester:
             if trades_df.empty:
                 continue
 
-            # Simulate trades
+            # Simulate each trade
             for row in trades_df.to_dict("records"):
                 ticker = row["Ticker"]
                 entry = row["Entry"]
@@ -40,7 +42,7 @@ class Backtester:
                 strategy = row.get("Strategy", "Unknown")
 
                 hist = get_historical_data(ticker)
-                hist = hist[hist.index >= self.start_date]
+                hist = hist[hist.index >= day]
                 if hist.empty:
                     continue
 
@@ -114,12 +116,12 @@ class Backtester:
             "AvgHoldingDays": round(df["HoldingDays"].mean(), 2)
         }
 
-        # Yearly summary
+        # ---------------- Yearly summary ----------------
         yearly = df.groupby("Year").agg(
             Trades=("Ticker", "count"),
             TotalR=("RMultiple", "sum"),
             AvgR=("RMultiple", "mean"),
-            TotalPnL_$=("PnL_$", "sum"),
+            TotalPnL_=("PnL_$", "sum"),  # ✅ corrected syntax
             AvgHoldingDays=("HoldingDays", "mean")
         ).round(2)
 
