@@ -7,7 +7,7 @@ CAPITAL_PER_TRADE = 5_000  # $5k per trade
 
 
 class Backtester:
-    def __init__(self, start_date="2022-01-01", rr_ratio=2, max_days=30):
+    def __init__(self, start_date="2025-11-01", rr_ratio=2, max_days=30):
         self.start_date = pd.to_datetime(start_date)
         self.rr_ratio = rr_ratio
         self.max_days = max_days
