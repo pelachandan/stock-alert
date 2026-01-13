@@ -1,5 +1,5 @@
 import pandas as pd
-from utils.scanner import run_scan
+from utils.scanner_historical import run_scan_historical
 from utils.pre_buy_check import pre_buy_check
 from utils.market_data import get_historical_data
 
@@ -8,7 +8,7 @@ CAPITAL_PER_TRADE = 5_000  # $5k per trade
 
 class Backtester:
     """
-    Historical backtester using scan + pre-buy logic.
+    Historical backtester using scanner_historical + pre-buy logic.
 
     Produces:
     - Outcome (Win/Loss)
@@ -30,36 +30,28 @@ class Backtester:
     def run(self, test_mode=False):
         print(f"🚀 Running backtest from {self.start_date.date()}...")
 
-        ema, high, _, cons, rs = run_scan(test_mode=test_mode)
+        # Use historical scanner
+        signals = run_scan_historical(as_of_date=self.start_date)
+        if test_mode:
+            signals = signals[:50]  # limit for testing
 
-        # Ensure Strategy exists
-        for lst, name in [
-            (ema, "EMA Crossover"),
-            (high, "52-Week High"),
-            (cons, "Consolidation Breakout"),
-            (rs, "Relative Strength"),
-        ]:
-            for s in lst:
-                s.setdefault("Strategy", name)
-
-        signals = ema + high + cons + rs
-        trades = pre_buy_check(signals, rr_ratio=self.rr_ratio)
-
-        if trades.empty:
+        trades_df = pre_buy_check(signals, rr_ratio=self.rr_ratio)
+        if trades_df.empty:
             print("⚠️ No trades generated.")
             return pd.DataFrame()
 
         results = []
 
-        for row in trades.to_dict("records"):
+        for row in trades_df.to_dict("records"):
             ticker = row["Ticker"]
             entry = row["Entry"]
             stop = row["StopLoss"]
             target = row["Target"]
+            signal_date = row.get("AsOfDate", self.start_date)
+            strategy = row.get("Strategy", "Unknown")
 
             hist = get_historical_data(ticker)
-            hist = hist[hist.index >= self.start_date]
-
+            hist = hist[hist.index >= signal_date]
             if hist.empty:
                 continue
 
@@ -73,7 +65,8 @@ class Backtester:
             results.append({
                 **row,
                 **outcome,
-                "Year": hist.index[0].year,
+                "Year": signal_date.year,
+                "Strategy": strategy,
                 "PositionSize": round(position_size, 2),
                 "RiskPerTrade_$": round(risk, 2),
                 "PnL_$": round(pnl, 2),
@@ -147,15 +140,7 @@ class Backtester:
             })
             .round(2)
         )
-
-        yearly.columns = [
-            "Trades",
-            "TotalR",
-            "AvgR",
-            "TotalPnL_$",
-            "AvgHoldingDays",
-        ]
-
+        yearly.columns = ["Trades", "TotalR", "AvgR", "TotalPnL_$", "AvgHoldingDays"]
         summary["YearlySummary"] = yearly.to_dict("index")
 
         # ---- Strategy-Year PnL ----
