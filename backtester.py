@@ -22,15 +22,11 @@ class Backtester:
     def __init__(self, start_date="2022-01-01", rr_ratio=2, max_days=30):
         self.start_date = pd.to_datetime(start_date)
         self.rr_ratio = rr_ratio
-        self.max_days = max_days  # Max holding period per trade
+        self.max_days = max_days
 
     def run(self, test_mode=False):
-        """
-        Runs backtest and returns DataFrame of trades with outcomes.
-        """
         print(f"🚀 Running backtest from {self.start_date.date()}...")
 
-        # Run scan (signals are reused historically)
         ema_list, high_list, watchlist_highs, consolidation_list, rs_list = run_scan(
             test_mode=test_mode
         )
@@ -65,7 +61,6 @@ class Backtester:
             if hist_df.empty:
                 continue
 
-            # Filter to backtest start date
             hist_df = hist_df[hist_df.index >= self.start_date]
             if hist_df.empty:
                 continue
@@ -91,15 +86,6 @@ class Backtester:
         return pd.DataFrame(trades_outcomes)
 
     def _simulate_trade(self, df, entry, stop, target, max_days):
-        """
-        Simulates a trade candle-by-candle.
-        Returns:
-        - MAE / MFE
-        - Exit price
-        - Outcome (Win/Loss)
-        - R-multiple
-        - Holding duration (days)
-        """
         df = df.iloc[:max_days].copy()
 
         mae = (entry - df["Low"]).max()
@@ -133,39 +119,43 @@ class Backtester:
         }
 
     def evaluate(self, trades_df):
-        """
-        Produces summary statistics including duration & dollar P/L.
-        """
         if trades_df.empty:
             return "No trades executed"
 
         total_trades = len(trades_df)
         wins = (trades_df["Outcome"] == "Win").sum()
-        win_rate = wins / total_trades * 100
 
         summary = {
             "TotalTrades": total_trades,
             "Wins": wins,
             "Losses": total_trades - wins,
-            "WinRate%": round(win_rate, 2),
+            "WinRate%": round(wins / total_trades * 100, 2),
             "AvgRMultiple": round(trades_df["RMultiple"].mean(), 2),
             "TotalPnL_$": round(trades_df["PnL_$"].sum(), 2),
             "AvgHoldingDays": round(trades_df["HoldingDays"].mean(), 2),
         }
 
-        # ---- Year-wise breakdown ----
-        summary["YearlySummary"] = (
+        # ---- Year-wise breakdown (FIXED) ----
+        yearly = (
             trades_df.groupby("Year")
-            .agg(
-                Trades=("Ticker", "count"),
-                TotalR=("RMultiple", "sum"),
-                AvgR=("RMultiple", "mean"),
-                TotalPnL_$=("PnL_$", "sum"),
-                AvgHoldingDays=("HoldingDays", "mean"),
-            )
+            .agg({
+                "Ticker": "count",
+                "RMultiple": ["sum", "mean"],
+                "PnL_$": "sum",
+                "HoldingDays": "mean",
+            })
             .round(2)
-            .to_dict(orient="index")
         )
+
+        yearly.columns = [
+            "Trades",
+            "TotalR",
+            "AvgR",
+            "TotalPnL_$",
+            "AvgHoldingDays",
+        ]
+
+        summary["YearlySummary"] = yearly.to_dict(orient="index")
 
         # ---- Strategy + Year PnL ----
         summary["StrategyYearPnL"] = (
