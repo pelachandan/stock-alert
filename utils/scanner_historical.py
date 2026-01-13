@@ -1,118 +1,108 @@
 import pandas as pd
-from utils.market_data import get_historical_data
-from utils.indicators import calculate_ema, calculate_rs  # adjust if names differ
+import yfinance as yf
+from config import MIN_MARKET_CAP, SP500_SOURCE
+from utils.market_data import get_market_cap, get_historical_data
+from utils.ema_utils import compute_rsi
 
-"""
-Historical scanner
------------------------------
-Returns signals AS-OF a given historical date without look-ahead bias.
-Used ONLY by backtester.py
-"""
-
-SPY_TICKER = "SPY"
-
-
-def _market_regime(as_of_date):
-    """Determine market regime using SPY EMA200 as of date."""
-    spy = get_historical_data(SPY_TICKER)
-    if spy.empty:
-        return "UNKNOWN"
-
-    spy = spy[spy.index <= as_of_date]
-    if len(spy) < 200:
-        return "UNKNOWN"
-
-    ema200 = spy["Close"].ewm(span=200).mean().iloc[-1]
-    close = spy["Close"].iloc[-1]
-
-    return "BULLISH" if close > ema200 else "BEARISH"
-
-
-def run_scan_historical(as_of_date, tickers, min_market_cap=1_000_000_000):
+def run_scan_historical(as_of_date, lookback_years=2):
     """
-    Run historical scan for a specific date.
-
-    Parameters
-    ----------
-    as_of_date : datetime-like
-        Date for which signals are generated
-    tickers : list[str]
-        Universe of tickers
-    min_market_cap : int
-        Market-cap filter (already applied upstream if desired)
-
-    Returns
-    -------
-    tuple of lists: ema_list, high_list, consolidation_list, rs_list
+    Historical scanner that ONLY uses data available up to as_of_date.
+    Returns list of signal dicts compatible with pre_buy_check().
     """
+
     as_of_date = pd.to_datetime(as_of_date)
 
-    ema_list = []
-    high_list = []
-    consolidation_list = []
-    rs_list = []
+    sp500 = pd.read_csv(SP500_SOURCE)
+    tickers = sp500["Symbol"].tolist()
 
-    regime = _market_regime(as_of_date)
+    signals = []
 
+    # ---------- Market regime (SPY EMA200) ----------
+    spy = yf.download(
+        "SPY",
+        start=as_of_date - pd.DateOffset(years=2),
+        end=as_of_date + pd.Timedelta(days=1),
+        progress=False
+    )
+
+    if spy.empty:
+        market_bullish = True
+    else:
+        spy["EMA200"] = spy["Close"].ewm(span=200, adjust=False).mean()
+        spy = spy[spy.index <= as_of_date]
+        market_bullish = spy["Close"].iloc[-1] > spy["EMA200"].iloc[-1]
+
+    # ---------- Scan tickers ----------
     for ticker in tickers:
-        df = get_historical_data(ticker)
-        if df.empty:
+        market_cap = get_market_cap(ticker)
+        if not market_cap or market_cap < MIN_MARKET_CAP:
             continue
 
-        df = df[df.index <= as_of_date]
-        if len(df) < 200:
+        df = get_historical_data(
+            ticker,
+            start=as_of_date - pd.DateOffset(years=lookback_years),
+            end=as_of_date
+        )
+
+        if df.empty or len(df) < 200:
             continue
 
-        close = df["Close"].iloc[-1]
-        high_52w = df["High"].rolling(252).max().iloc[-1]
+        close = df["Close"]
+        high = df["High"]
+        low = df["Low"]
+        volume = df["Volume"]
 
-        ema20 = df["Close"].ewm(span=20).mean().iloc[-1]
-        ema50 = df["Close"].ewm(span=50).mean().iloc[-1]
-        ema200 = df["Close"].ewm(span=200).mean().iloc[-1]
+        ema20 = close.ewm(span=20).mean()
+        ema50 = close.ewm(span=50).mean()
+        ema200 = close.ewm(span=200).mean()
 
-        # -------- EMA Crossover Strategy --------
-        if ema20 > ema50 > ema200 and close > ema20:
-            ema_list.append({
+        # ---------- EMA crossover ----------
+        if ema20.iloc[-1] > ema50.iloc[-1] > ema200.iloc[-1]:
+            signals.append({
                 "Ticker": ticker,
-                "Price": round(close, 2),
+                "Price": close.iloc[-1],
                 "AsOfDate": as_of_date,
-                "Strategy": "EMA Crossover",
-                "MarketRegime": regime,
+                "Strategy": "EMA Crossover"
             })
 
-        # -------- 52-Week High Breakout --------
-        if close >= 0.99 * high_52w and regime == "BULLISH":
-            high_list.append({
+        if not market_bullish:
+            continue
+
+        # ---------- 52-week high ----------
+        high_52w = close.rolling(252).max().iloc[-1]
+        pct_from_high = (close.iloc[-1] - high_52w) / high_52w * 100
+        rsi14 = compute_rsi(close, 14).iloc[-1]
+
+        if pct_from_high > -5 and rsi14 > 50:
+            signals.append({
                 "Ticker": ticker,
-                "Price": round(close, 2),
+                "Price": close.iloc[-1],
                 "AsOfDate": as_of_date,
-                "Strategy": "52-Week High",
-                "MarketRegime": regime,
+                "Strategy": "52-Week High"
             })
 
-        # -------- Consolidation Breakout (simple) --------
-        recent = df.tail(20)
-        if recent["High"].max() - recent["Low"].min() < 0.05 * close:
-            consolidation_list.append({
+        # ---------- Consolidation breakout ----------
+        range_pct = (high.iloc[-20:].max() - low.iloc[-20:].min()) / close.iloc[-1]
+        vol_ratio = volume.iloc[-1] / max(volume.iloc[-20:].mean(), 1)
+
+        if range_pct < 0.08 and vol_ratio > 1.5:
+            signals.append({
                 "Ticker": ticker,
-                "Price": round(close, 2),
+                "Price": close.iloc[-1],
                 "AsOfDate": as_of_date,
-                "Strategy": "Consolidation Breakout",
-                "MarketRegime": regime,
+                "Strategy": "Consolidation Breakout"
             })
 
-        # -------- Relative Strength --------
-        try:
-            rs = calculate_rs(df)
-            if rs > 1.1:
-                rs_list.append({
-                    "Ticker": ticker,
-                    "Price": round(close, 2),
-                    "AsOfDate": as_of_date,
-                    "Strategy": "Relative Strength",
-                    "MarketRegime": regime,
-                })
-        except Exception:
-            pass
+        # ---------- Relative strength ----------
+        spy_close = spy["Close"].iloc[-1]
+        rel_perf = close.iloc[-1] / close.iloc[-60] - spy_close / spy["Close"].iloc[-60]
 
-    return ema_list, high_list, consolidation_list, rs_list
+        if rel_perf > 0:
+            signals.append({
+                "Ticker": ticker,
+                "Price": close.iloc[-1],
+                "AsOfDate": as_of_date,
+                "Strategy": "Relative Strength"
+            })
+
+    return signals
