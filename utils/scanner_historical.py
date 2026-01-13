@@ -4,14 +4,15 @@ from config import MIN_MARKET_CAP, SP500_SOURCE
 from utils.market_data import get_market_cap, get_historical_data
 from utils.ema_utils import compute_rsi
 
+
 def run_scan_historical(as_of_date, lookback_years=2):
     """
-    Historical scanner that ONLY uses data available up to as_of_date.
+    Historical scanner that only uses data available up to `as_of_date`.
     Returns list of signal dicts compatible with pre_buy_check().
     """
-
     as_of_date = pd.to_datetime(as_of_date)
 
+    # Load S&P500 tickers
     sp500 = pd.read_csv(SP500_SOURCE)
     tickers = sp500["Symbol"].tolist()
 
@@ -38,11 +39,14 @@ def run_scan_historical(as_of_date, lookback_years=2):
         if not market_cap or market_cap < MIN_MARKET_CAP:
             continue
 
-        df = get_historical_data(
-            ticker,
-            start=as_of_date - pd.DateOffset(years=lookback_years),
-            end=as_of_date
-        )
+        # Get historical data
+        df = get_historical_data(ticker)
+        if df.empty:
+            continue
+
+        # Filter to lookback period
+        lookback_start = as_of_date - pd.DateOffset(years=lookback_years)
+        df = df[(df.index >= lookback_start) & (df.index <= as_of_date)]
 
         if df.empty or len(df) < 200:
             continue
@@ -94,15 +98,15 @@ def run_scan_historical(as_of_date, lookback_years=2):
             })
 
         # ---------- Relative strength ----------
-        spy_close = spy["Close"].iloc[-1]
-        rel_perf = close.iloc[-1] / close.iloc[-60] - spy_close / spy["Close"].iloc[-60]
-
-        if rel_perf > 0:
-            signals.append({
-                "Ticker": ticker,
-                "Price": close.iloc[-1],
-                "AsOfDate": as_of_date,
-                "Strategy": "Relative Strength"
-            })
+        if not spy.empty and len(spy) > 60:
+            spy_close = spy["Close"].iloc[-1]
+            rel_perf = (close.iloc[-1] / close.iloc[-60]) - (spy_close / spy["Close"].iloc[-60])
+            if rel_perf > 0:
+                signals.append({
+                    "Ticker": ticker,
+                    "Price": close.iloc[-1],
+                    "AsOfDate": as_of_date,
+                    "Strategy": "Relative Strength"
+                })
 
     return signals
