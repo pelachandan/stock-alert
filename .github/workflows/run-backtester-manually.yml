@@ -25,11 +25,11 @@ jobs:
           pip install -r requirements.txt
           pip install yfinance pandas numpy
 
-      # 4️⃣ Run the backtester
+      # 4️⃣ Run the backtester (walk-forward without look-ahead bias)
       - name: Run Backtester
         env:
           EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
           EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         run: |
-          python backtester.py
+          python backtester_walkforward.py
