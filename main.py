@@ -2,9 +2,10 @@ from utils.scanner import run_scan
 from utils.pre_buy_check import pre_buy_check
 from utils.email_utils import send_email_alert
 from utils.ema_utils import compute_ema_incremental
+from trading_config import MAX_TRADES_PER_SCAN
 
-MAX_TRADES_EMAIL = 5
-MIN_NORM_SCORE = 7
+# Email-specific filtering (separate from trade selection)
+MIN_NORM_SCORE = 7  # Minimum score to include in email
 
 def get_market_regime(benchmark_ticker="SPY"):
     """
@@ -65,18 +66,21 @@ if __name__ == "__main__":
     trade_ready = pre_buy_check(combined_signals)
 
     # --------------------------------------------------
-    # Step 3.1: Apply normalized score filter and max email trades
+    # Step 3.1: Apply normalized score filter and max trades
     # --------------------------------------------------
     if not trade_ready.empty:
         trade_ready = trade_ready[
             trade_ready["NormalizedScore"] >= MIN_NORM_SCORE
-        ].head(MAX_TRADES_EMAIL)
+        ].head(MAX_TRADES_PER_SCAN)
+
+    print(f"📧 Sending email with top {len(trade_ready)} trade(s) (max: {MAX_TRADES_PER_SCAN})")
 
     # --------------------------------------------------
     # Step 4: Send email
     # --------------------------------------------------
     send_email_alert(
         trade_df=trade_ready,
+        all_signals=combined_signals,  # Pass all signals for watchlist
         high_buy_list=high_list,
         high_watch_list=high_watch_list,
         ema_list=ema_list,

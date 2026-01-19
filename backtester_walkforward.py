@@ -2,8 +2,15 @@ import pandas as pd
 from utils.scanner_walkforward import run_scan_as_of
 from utils.pre_buy_check import pre_buy_check
 from utils.market_data import get_historical_data
-
-CAPITAL_PER_TRADE = 3_000  # $3k per trade
+from download_history import download_ticker
+from trading_config import (
+    CAPITAL_PER_TRADE,
+    RISK_REWARD_RATIO,
+    MAX_HOLDING_DAYS,
+    BACKTEST_START_DATE,
+    SCAN_FREQUENCY,
+    MAX_TRADES_PER_SCAN
+)
 
 
 class WalkForwardBacktester:
@@ -14,35 +21,65 @@ class WalkForwardBacktester:
     - Uses scanner_walkforward
     """
 
-    def __init__(self, tickers, start_date="2022-01-01", rr_ratio=2, max_days=30):
+    def __init__(self, tickers, start_date="2022-01-01", rr_ratio=2, max_days=45, scan_frequency="W-MON"):
+        """
+        Args:
+            tickers: List of ticker symbols to backtest
+            start_date: Start date for backtest
+            rr_ratio: Risk/reward ratio (default 2:1)
+            max_days: Maximum holding period in days (default 45 for swing trading)
+            scan_frequency: How often to scan for signals (default 'W-MON' = weekly on Mondays)
+                           Options: 'B' (daily), 'W-MON' (weekly), 'W-FRI' (weekly Friday)
+        """
         self.tickers = tickers
         self.start_date = pd.to_datetime(start_date)
         self.rr_ratio = rr_ratio
         self.max_days = max_days
+        self.scan_frequency = scan_frequency
 
     # -------------------------------------------------
     # MAIN RUN
     # -------------------------------------------------
     def run(self):
-        print(f"🚀 Walk-forward backtest from {self.start_date.date()}")
+        end_date = pd.Timestamp.today()
+        print(f"🚀 Walk-forward backtest from {self.start_date.date()} to {end_date.date()}")
+        print(f"📅 Scan frequency: {self.scan_frequency} | Max holding: {self.max_days} days")
 
         all_trades = []
 
-        trading_days = pd.date_range(
+        # Generate scan dates based on frequency (weekly is much faster than daily)
+        scan_dates = pd.date_range(
             self.start_date,
-            pd.Timestamp.today(),
-            freq="B"
+            end_date,
+            freq=self.scan_frequency
         )
 
-        for day in trading_days:
-            print(f" Simulating day from {day}")
+        print(f"🔍 Total scan dates: {len(scan_dates)}")
+
+        for idx, day in enumerate(scan_dates, 1):
+            print(f"📅 [{idx}/{len(scan_dates)}] Simulating {day.date()}")
+
+            # Generate signals using only data up to this date (no look-ahead bias)
             signals = run_scan_as_of(day, self.tickers)
             if not signals:
+                print(f"   ⚠️  No signals generated")
                 continue
 
-            trades = pre_buy_check(signals, rr_ratio=self.rr_ratio)
+            print(f"   ✅ Found {len(signals)} signals")
+
+            # 🔒 CRITICAL: Pass as_of_date to prevent look-ahead bias in pre_buy_check
+            trades = pre_buy_check(signals, rr_ratio=self.rr_ratio, as_of_date=day)
             if trades.empty:
+                print(f"   ⚠️  No trades passed pre-buy filters")
                 continue
+
+            print(f"   💼 {len(trades)} trades passed filters")
+
+            # 🎯 Take top N trades per day based on config
+            if not trades.empty:
+                trades = trades.head(MAX_TRADES_PER_SCAN)
+                tickers_selected = ", ".join([f"{row['Ticker']}({row['NormalizedScore']:.1f})" for _, row in trades.iterrows()])
+                print(f"   🎯 Selected top {len(trades)} trade(s): {tickers_selected}")
 
             for trade in trades.to_dict("records"):
                 result = self._simulate_trade(day, trade)
@@ -152,15 +189,40 @@ class WalkForwardBacktester:
 # -------------------------------------------------
 if __name__ == "__main__":
     # Example: S&P 500 tickers loaded elsewhere
-    from config import SP500_SOURCE
-    tickers = pd.read_csv(SP500_SOURCE)["Symbol"].tolist()
+    # Using local CSV to avoid SSL certificate issues on macOS
+    tickers = pd.read_csv("sp500_constituents.csv")["Symbol"].tolist()
+
+    # -------------------------------------------------
+    # 📥 UPDATE HISTORICAL DATA (INCREMENTAL)
+    # -------------------------------------------------
+    print("="*60)
+    print("📥 UPDATING HISTORICAL DATA FOR ALL TICKERS")
+    print("="*60)
+    updated_count = 0
+    skipped_count = 0
+
+    for i, ticker in enumerate(tickers, 1):
+        if i % 50 == 0:  # Progress update every 50 tickers
+            print(f"\n[Progress: {i}/{len(tickers)} tickers processed]")
+        download_ticker(ticker)
+
+    # Also update SPY benchmark data
+    print("\n📊 Updating SPY benchmark data...")
+    download_ticker("SPY")
+
+    print("\n" + "="*60)
+    print("✅ DATA UPDATE COMPLETE! Starting backtest...")
+    print("="*60 + "\n")
 
     bt = WalkForwardBacktester(
         tickers=tickers,
-        start_date="2022-01-01",
-        rr_ratio=2,
-        max_days=30
+        start_date=BACKTEST_START_DATE,
+        rr_ratio=RISK_REWARD_RATIO,
+        max_days=MAX_HOLDING_DAYS,
+        scan_frequency=SCAN_FREQUENCY
     )
+
+    print(f"⚙️  CONFIG: R/R={RISK_REWARD_RATIO}:1, MaxTrades={MAX_TRADES_PER_SCAN}, Capital=${CAPITAL_PER_TRADE:,}/trade\n")
 
     trades = bt.run()
     print(trades)

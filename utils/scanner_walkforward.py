@@ -54,6 +54,13 @@ def run_scan_as_of(as_of_date, tickers):
         # EMA Crossover Strategy
         # ==========================================================
         if ema20.iloc[-1] > ema50.iloc[-1] > ema200.iloc[-1]:
+            # Calculate volume ratio for scoring
+            avg_vol = volume.rolling(20).mean().iloc[-1] if len(volume) >= 20 else volume.mean()
+            vol_ratio = volume.iloc[-1] / max(avg_vol, 1)
+
+            # Simple score for EMA crossover
+            ema_score = 10 + (vol_ratio - 1) * 5  # Base 10, bonus for volume
+
             signals.append({
                 "Ticker": ticker,
                 "Strategy": "EMA Crossover",
@@ -63,6 +70,7 @@ def run_scan_as_of(as_of_date, tickers):
                 "EMA50": round(ema50.iloc[-1], 2),
                 "EMA200": round(ema200.iloc[-1], 2),
                 "RSI14": round(rsi14.iloc[-1], 2),
+                "Score": round(ema_score, 2),
                 "MarketRegime": market_regime,
             })
 
@@ -73,11 +81,21 @@ def run_scan_as_of(as_of_date, tickers):
         pct_from_high = (last_close - high_52w) / high_52w * 100
 
         if pct_from_high > -5 and rsi14.iloc[-1] > 50:
+            # Calculate volume ratio for scoring
+            avg_vol = volume.rolling(50).mean().iloc[-1] if len(volume) >= 50 else volume.mean()
+            vol_ratio = volume.iloc[-1] / max(avg_vol, 1)
+
             signals.append({
                 "Ticker": ticker,
                 "Strategy": "52-Week High",
                 "Price": round(last_close, 2),
                 "AsOfDate": as_of_date,
+                "EMA20": round(ema20.iloc[-1], 2),
+                "EMA50": round(ema50.iloc[-1], 2),
+                "EMA200": round(ema200.iloc[-1], 2),
+                "RSI14": round(rsi14.iloc[-1], 2),
+                "VolumeRatio": round(vol_ratio, 2),
+                "PctFrom52High": round(pct_from_high, 2),
                 "Score": round(100 + pct_from_high, 2),
                 "MarketRegime": market_regime,
             })
@@ -94,7 +112,11 @@ def run_scan_as_of(as_of_date, tickers):
                 "Strategy": "Consolidation Breakout",
                 "Price": round(last_close, 2),
                 "AsOfDate": as_of_date,
-                "Score": round((1 - range_pct) * vol_ratio, 2),
+                "EMA20": round(ema20.iloc[-1], 2),
+                "EMA50": round(ema50.iloc[-1], 2),
+                "EMA200": round(ema200.iloc[-1], 2),
+                "RSI14": round(rsi14.iloc[-1], 2),
+                "Score": round((1 - range_pct) * vol_ratio * 5, 2),  # Scale up for better comparison
                 "MarketRegime": market_regime,
             })
 

@@ -2,6 +2,16 @@ import pandas as pd
 import numpy as np
 from utils.market_data import get_historical_data
 from utils.ema_utils import compute_rsi, compute_ema_incremental
+from trading_config import (
+    ADX_THRESHOLD,
+    RSI_MIN,
+    RSI_MAX,
+    VOLUME_MULTIPLIER,
+    MIN_LIQUIDITY_USD,
+    PRICE_ABOVE_EMA20_MIN,
+    PRICE_ABOVE_EMA20_MAX,
+    RISK_REWARD_RATIO
+)
 
 # -------------------------------------------------
 # ADX
@@ -61,16 +71,28 @@ def normalize_score(score, strategy):
 # -------------------------------------------------
 # Pre-Buy Check with Market Regime Filter
 # -------------------------------------------------
-def pre_buy_check(combined_signals, rr_ratio=2, benchmark="SPY"):
+def pre_buy_check(combined_signals, rr_ratio=None, benchmark="SPY", as_of_date=None):
     """
     Deduplicates signals, applies liquidity + trend filters,
     computes ATR-based stops, normalizes scores,
     and blocks breakout trades in bearish market regime.
+
+    Args:
+        combined_signals: List of signal dictionaries
+        rr_ratio: Risk/reward ratio for target calculation
+        benchmark: Benchmark ticker for regime (not used, kept for compatibility)
+        as_of_date: Optional date for backtesting. If None, uses latest data (live mode).
+                    If provided, filters data to only use information up to this date.
     """
+
+    # Use config value if rr_ratio not provided
+    if rr_ratio is None:
+        rr_ratio = RISK_REWARD_RATIO
 
     # Market regime must be supplied by scanner (walk-forward safe)
     is_bullish = True
-    print(f"📊 Market regime ({benchmark}): {'BULLISH' if is_bullish else 'BEARISH'}")
+    mode = "BACKTEST" if as_of_date else "LIVE"
+    print(f"📊 Mode: {mode} | Market regime ({benchmark}): {'BULLISH' if is_bullish else 'BEARISH'}")
 
     # -------------------------------
     # Deduplicate by strategy priority
@@ -107,17 +129,24 @@ def pre_buy_check(combined_signals, rr_ratio=2, benchmark="SPY"):
             continue
 
         df = get_historical_data(ticker)
-        if df.empty or len(df) < 60:
+        if df.empty:
+            continue
+
+        # 🔒 CRITICAL: Filter to as_of_date for backtesting (prevents look-ahead bias)
+        if as_of_date is not None:
+            df = df[df.index <= as_of_date]
+
+        if len(df) < 60:
             continue
 
         df = df.tail(60)
         close = df["Close"].iloc[-1]
 
         # -------------------------------
-        # Liquidity filter
+        # Liquidity filter (from config)
         # -------------------------------
         avg_dollar_vol = (df["Close"] * df["Volume"]).rolling(20).mean().iloc[-1]
-        if avg_dollar_vol < 20_000_000:
+        if avg_dollar_vol < MIN_LIQUIDITY_USD:
             continue
 
         # -------------------------------
@@ -146,10 +175,18 @@ def pre_buy_check(combined_signals, rr_ratio=2, benchmark="SPY"):
             df["ADX14"] = compute_adx(df)
 
             trend_ok = s["EMA20"] > s["EMA50"] > s["EMA200"]
-            rsi_ok = 45 <= df["RSI14"].iloc[-1] <= 72
-            adx_ok = df["ADX14"].iloc[-1] >= 20
+            rsi_ok = RSI_MIN <= df["RSI14"].iloc[-1] <= RSI_MAX
+            adx_ok = df["ADX14"].iloc[-1] >= ADX_THRESHOLD
 
-            if not all([trend_ok, rsi_ok, adx_ok]):
+            # Volume confirmation (from config)
+            vol_ratio = df["Volume"].iloc[-1] / df["Volume"].rolling(20).mean().iloc[-1]
+            volume_ok = vol_ratio >= VOLUME_MULTIPLIER
+
+            # Price action filter (from config)
+            price_above_ema20 = (close - s["EMA20"]) / s["EMA20"]
+            ema_distance_ok = PRICE_ABOVE_EMA20_MIN <= price_above_ema20 <= PRICE_ABOVE_EMA20_MAX
+
+            if not all([trend_ok, rsi_ok, adx_ok, volume_ok, ema_distance_ok]):
                 continue
 
         norm_score = normalize_score(s.get("Score", 0), strategy)

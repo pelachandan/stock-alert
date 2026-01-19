@@ -110,7 +110,7 @@ def run_scan(test_mode=False):
                     "EMA200": ema200,
                     "VolumeRatio": vol_ratio,
                     "RSI14": rsi14,
-                    "Strategy": "52-Week High"  # <-- assign here,
+                    "Strategy": "52-Week High",  # <-- assign here
                     "MarketRegime": market_bullish,
                 }
 
