@@ -1,5 +1,6 @@
 import pandas as pd
 from utils.market_data import get_historical_data
+from utils.ema_utils import compute_ema_incremental
 
 def check_relative_strength(ticker, benchmark_df, lookback=50):
     """
@@ -46,12 +47,23 @@ def check_relative_strength(ticker, benchmark_df, lookback=50):
         # --- Score capped at 10 ---
         score = round(min(rs_ratio * 100, 10), 2)
 
+        # --- Get EMA values (needed for pre_buy_check filters) ---
+        ema_df = compute_ema_incremental(ticker)
+        ema20 = ema50 = ema200 = 0
+        if not ema_df.empty and len(ema_df) > 0:
+            ema20 = ema_df["EMA20"].iloc[-1] if "EMA20" in ema_df.columns else 0
+            ema50 = ema_df["EMA50"].iloc[-1] if "EMA50" in ema_df.columns else 0
+            ema200 = ema_df["EMA200"].iloc[-1] if "EMA200" in ema_df.columns else 0
+
         return {
             "Ticker": ticker,
             "StockReturn%": round(stock_ret * 100, 2),
             "BenchmarkReturn%": round(benchmark_ret * 100, 2),
             "RS%": round(rs_ratio * 100, 2),
-            "Score": score
+            "Score": score,
+            "EMA20": ema20,
+            "EMA50": ema50,
+            "EMA200": ema200
         }
 
     except Exception as e:

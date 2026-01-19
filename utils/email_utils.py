@@ -96,6 +96,7 @@ def normalize_generic_for_table(generic_list):
 # ============================================================
 def send_email_alert(
     trade_df,
+    all_signals=None,
     high_buy_list=None,
     high_watch_list=None,
     ema_list=None,
@@ -105,86 +106,59 @@ def send_email_alert(
     html_body=None,
 ):
     """
-    Sends an HTML email with:
-    - EMA crossover pre-buy signals
-    - Pre-buy actionable trades
-    - 52-week high BUY-ready continuations
-    - 52-week near-high WATCHLIST
-    - Consolidation Breakouts
-    - Relative Strength / Sector Leaders
+    Sends simplified HTML email with:
+    - Actionable trades only (top trades that passed all filters)
+    - Watchlist of 10 stocks with strategy names
     """
     if html_body:
         body_html = html_body
     else:
-        body_html = "<h1>📊 Daily Market Scan</h1>"
+        body_html = "<h1>📊 Daily Market Scan - Actionable Trades</h1>"
+        body_html += f"<p><strong>Config:</strong> 2:1 R/R, ADX≥24, RSI 50-66, Vol≥1.4x | {datetime.now().strftime('%Y-%m-%d')}</p>"
 
-        # Pre-Buy Actionable Trades (use NormalizedScore)
-        body_html += df_to_html_table(
-            trade_df,
-            score_column="NormalizedScore",
-            title="🔥 Pre-Buy Actionable Trades",
-            max_rows=5
-        )
+        # Actionable Trades Only
+        if not trade_df.empty:
+            # Select columns for actionable trades
+            action_cols = ["Ticker", "Strategy", "Entry", "StopLoss", "Target", "NormalizedScore"]
+            action_df = trade_df[[c for c in action_cols if c in trade_df.columns]]
 
-        # EMA Crossovers
-        if ema_list:
-            ema_df = pd.DataFrame(ema_list)
             body_html += df_to_html_table(
-                ema_df,
-                score_column="Score",
-                title="📈 EMA Crossovers (Trend Ignition)",
-                max_rows=5
-            )
-        else:
-            body_html += "<p>No EMA crossovers today.</p>"
-
-        # 52-Week High BUY-READY
-        if high_buy_list:
-            highs_df = normalize_highs_for_table(high_buy_list)
-            body_html += df_to_html_table(
-                highs_df,
+                action_df,
                 score_column="NormalizedScore",
-                title="🚀 52-Week High Continuation (BUY-READY)",
-                max_rows=5
+                title=f"🔥 ACTIONABLE TRADES ({len(action_df)} stocks)",
+                max_rows=None  # Show all actionable trades
             )
         else:
-            body_html += "<p>No BUY-ready 52-week continuation setups today.</p>"
+            body_html += "<h2>🔥 ACTIONABLE TRADES</h2><p>No actionable trades today.</p>"
 
-        # 52-Week High WATCHLIST
-        if high_watch_list:
-            watch_df = normalize_watchlist_for_table(high_watch_list)
+        # Watchlist - Top 10 stocks that didn't make the cut
+        watchlist_items = []
+
+        # Combine all signals that aren't in actionable trades
+        if all_signals:
+            actionable_tickers = set(trade_df["Ticker"].tolist()) if not trade_df.empty else set()
+
+            for signal in all_signals:
+                ticker = signal.get("Ticker")
+                if ticker and ticker not in actionable_tickers:
+                    watchlist_items.append({
+                        "Ticker": ticker,
+                        "Strategy": signal.get("Strategy", "Unknown"),
+                        "Score": signal.get("Score", 0)
+                    })
+
+        # Sort by score and take top 10
+        if watchlist_items:
+            watch_df = pd.DataFrame(watchlist_items)
+            watch_df = watch_df.sort_values(by="Score", ascending=False).head(10)
             body_html += df_to_html_table(
                 watch_df,
-                score_column=None,
-                title="👀 52-Week Near-High Watchlist",
-                max_rows=5
+                score_column="Score",
+                title="👀 WATCHLIST (Top 10 Non-Actionable Signals)",
+                max_rows=None
             )
         else:
-            body_html += "<p>No 52-week near-high watchlist stocks today.</p>"
-
-        # Consolidation Breakouts
-        if consolidation_list:
-            cons_df = normalize_generic_for_table(consolidation_list)
-            body_html += df_to_html_table(
-                cons_df,
-                score_column="NormalizedScore" if "NormalizedScore" in cons_df.columns else "Score",
-                title="📊 Consolidation Breakouts",
-                max_rows=5
-            )
-        else:
-            body_html += "<p>No consolidation breakout setups today.</p>"
-
-        # Relative Strength Leaders
-        if rs_list:
-            rs_df = normalize_generic_for_table(rs_list)
-            body_html += df_to_html_table(
-                rs_df,
-                score_column="NormalizedScore" if "NormalizedScore" in rs_df.columns else "Score",
-                title="⭐ Relative Strength / Sector Leaders",
-                max_rows=5
-            )
-        else:
-            body_html += "<p>No relative strength setups today.</p>"
+            body_html += "<h2>👀 WATCHLIST</h2><p>No watchlist stocks today.</p>"
 
     # Email credentials
     sender = os.getenv("EMAIL_SENDER")
