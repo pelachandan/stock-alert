@@ -17,6 +17,8 @@ RISK_REWARD_RATIO = 2       # Target profit is X times the risk (OPTION 3: Easie
 
 MAX_HOLDING_DAYS = 45       # Maximum days to hold a trade
 
+ATR_POSITION_MULTIPLIER = 2.5  # 2-3x ATR for swing trading (HIGH IMPACT #2)
+
 
 # =============================================================================
 # TRADE SELECTION
@@ -35,7 +37,7 @@ MAX_TRADES_PER_SCAN = 3     # Maximum trades to take per scan
 # =============================================================================
 
 # Trend strength (ADX)
-ADX_THRESHOLD = 24          # Minimum ADX for valid trend (OPTION 3: Stricter)
+ADX_THRESHOLD = 25          # Minimum ADX for valid trend (HIGH IMPACT #5 - stricter)
                             # 20 = weak trend OK
                             # 22 = medium trend (balanced)
                             # 24 = good trend (Option 3)
@@ -51,7 +53,7 @@ RSI_MAX = 66                # Maximum RSI value (OPTION 3: Tighter range)
                             # Wide: 45-70 (more trades)
 
 # Volume confirmation
-VOLUME_MULTIPLIER = 1.4     # Current volume vs 20-day average (OPTION 3: Moderate)
+VOLUME_MULTIPLIER = 1.5     # Current volume vs 20-day average (HIGH IMPACT #4 - stronger volume)
                             # 1.0 = no filter
                             # 1.3 = 30% above average (relaxed)
                             # 1.4 = 40% above average (Option 3)
@@ -64,6 +66,24 @@ MIN_LIQUIDITY_USD = 30_000_000  # Minimum 20-day avg dollar volume
                                 # $30M = balanced (current)
                                 # $50M = large cap only
                                 # $100M = mega cap only
+
+MIN_SHARES_PER_DAY = 1_000_000  # Minimum 1M shares/day (LOWER IMPACT #11)
+
+RS_RATING_THRESHOLD = 80  # Minimum relative strength percentile (55-day vs SPY) - HIGH IMPACT #1
+
+SECTOR_RS_ENABLED = True     # Enable sector relative strength filter
+SECTOR_RS_LOOKBACK_DAYS = 20 # Sector vs SPY lookback period (trading days)
+
+# Accumulation/Distribution Filter
+ACCUM_DIST_ENABLED = True         # Enable institutional accumulation detection
+ACCUM_DIST_PERIOD = 20            # Lookback period for A/D analysis (trading days)
+ACCUM_DIST_MIN_RATING = "B-"      # Minimum IBD-style rating (E, D, D+, C, B-, B, B+, A-, A, A+)
+ACCUM_DIST_BOOST_MULTIPLIER = 1.2 # Score boost for strong accumulation (A/A+ ratings)
+
+EARNINGS_BUFFER_DAYS = 5  # Skip trades within N days of earnings - HIGH IMPACT #3
+MAX_GAP_UP_PCT = 5.0      # Skip breakouts with >5% gap up - LOWER IMPACT #10
+
+CONSOLIDATION_MIN_DAYS = 21  # Minimum 3 weeks (21 days) for consolidation - MEDIUM IMPACT #8
 
 # Price action (distance from EMA20)
 PRICE_ABOVE_EMA20_MIN = 0.01    # Min 1% above EMA20

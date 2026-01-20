@@ -1,13 +1,21 @@
 import pandas as pd
 from utils.market_data import get_historical_data
 from utils.ema_utils import compute_ema_incremental, compute_rsi
+from utils.accumulation_distribution import detect_accumulation, is_under_distribution
+from config.trading_config import (
+    ACCUM_DIST_ENABLED,
+    ACCUM_DIST_PERIOD,
+    ACCUM_DIST_MIN_RATING,
+    ACCUM_DIST_BOOST_MULTIPLIER
+)
 
-def check_consolidation_breakout(ticker, lookback=20):
+def check_consolidation_breakout(ticker, lookback=21):
     """
     Detects consolidation breakout:
-    - Stock has been trading in a tight range for `lookback` days (<5% price range)
+    - Stock has been trading in a tight range for 3 weeks (21 days minimum) (<5% price range)
     - Breaks above the recent high with volume confirmation
     - EMA trend confirmation and RSI filter
+    - MEDIUM IMPACT #8: Longer consolidation = stronger breakouts
     Returns a dict with breakout info and score if valid, else None
     """
     try:
@@ -56,6 +64,17 @@ def check_consolidation_breakout(ticker, lookback=20):
             return None
 
         # ----------------------------
+        # Accumulation/Distribution Filter
+        # ----------------------------
+        acc_result = None
+        if ACCUM_DIST_ENABLED:
+            acc_result = detect_accumulation(df, period=ACCUM_DIST_PERIOD)
+
+            # Skip stocks under strong distribution
+            if is_under_distribution(df, period=ACCUM_DIST_PERIOD, max_rating="D+"):
+                return None  # Institutions are selling - skip breakout
+
+        # ----------------------------
         # Score calculation
         # ----------------------------
         price_score = ((close_today - max_close) / max_close * 100) * 0.4
@@ -73,6 +92,19 @@ def check_consolidation_breakout(ticker, lookback=20):
 
         final_score = round(base_score * (1 + momentum_boost), 2)
 
+        # ----------------------------
+        # Accumulation/Distribution Score Boost
+        # ----------------------------
+        acc_rating = None
+        acc_score_raw = None
+        if acc_result:
+            acc_rating = acc_result["ibd_rating"]
+            acc_score_raw = acc_result["composite_score"]
+
+            # Boost score for strong accumulation (A+, A ratings)
+            if acc_rating in ["A+", "A"]:
+                final_score = round(final_score * ACCUM_DIST_BOOST_MULTIPLIER, 2)
+
         return {
             "Ticker": ticker,
             "Close": round(close_today, 2),
@@ -83,6 +115,8 @@ def check_consolidation_breakout(ticker, lookback=20):
             "EMA50": round(ema50, 2),
             "EMA200": round(ema200, 2),
             "RSI14": round(rsi14, 2),
+            "AccDistRating": acc_rating,
+            "AccDistScore": acc_score_raw,
             "Score": final_score
         }
 
