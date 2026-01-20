@@ -29,4 +29,11 @@ def get_historical_data(ticker):
         return pd.DataFrame()
 
     df = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Ensure index is DatetimeIndex and timezone-naive
+    if not isinstance(df.index, pd.DatetimeIndex):
+        df.index = pd.to_datetime(df.index, utc=True).tz_localize(None)
+    elif df.index.tz is not None:
+        df.index = df.index.tz_localize(None)
+
     return df.sort_index()

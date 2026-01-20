@@ -66,7 +66,12 @@ def calculate_performance(ticker, days=20, as_of_date=None):
 
     # Filter to as_of_date for backtesting (prevents look-ahead bias)
     if as_of_date is not None:
-        df = df[df.index <= as_of_date]
+        # Normalize timezone: convert as_of_date to timezone-naive for comparison
+        # (DataFrame indices are already normalized in get_historical_data)
+        as_of_date_normalized = pd.Timestamp(as_of_date)
+        if as_of_date_normalized.tz is not None:
+            as_of_date_normalized = as_of_date_normalized.tz_localize(None)
+        df = df[df.index <= as_of_date_normalized]
 
     if len(df) < days + 1:
         return None
