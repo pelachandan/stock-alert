@@ -10,7 +10,14 @@ from config.trading_config import (
     MIN_LIQUIDITY_USD,
     PRICE_ABOVE_EMA20_MIN,
     PRICE_ABOVE_EMA20_MAX,
-    RISK_REWARD_RATIO
+    RISK_REWARD_RATIO,
+    CAPITAL_PER_TRADE,
+    ATR_POSITION_MULTIPLIER,
+    RS_RATING_THRESHOLD,
+    EARNINGS_BUFFER_DAYS,
+    MAX_GAP_UP_PCT,
+    SECTOR_RS_ENABLED,
+    SECTOR_RS_LOOKBACK_DAYS
 )
 
 # -------------------------------------------------
@@ -113,6 +120,12 @@ def pre_buy_check(combined_signals, rr_ratio=None, benchmark="SPY", as_of_date=N
     signals = list(best_signal.values())
     trades = []
 
+    # Load SPY benchmark once for RS calculations (cache for efficiency)
+    from utils.relative_strength_utils import calculate_rs_rating
+    spy_benchmark_df = get_historical_data("SPY")
+    if as_of_date:
+        spy_benchmark_df = spy_benchmark_df[spy_benchmark_df.index <= as_of_date]
+
     for s in signals:
         ticker = s["Ticker"]
         strategy = s["Strategy"]
@@ -143,6 +156,55 @@ def pre_buy_check(combined_signals, rr_ratio=None, benchmark="SPY", as_of_date=N
         close = df["Close"].iloc[-1]
 
         # -------------------------------
+        # Relative Strength Filter (55-day vs SPY) - HIGH IMPACT #1
+        # -------------------------------
+        rs_rating = calculate_rs_rating(ticker, spy_benchmark_df, period=55)
+        if rs_rating is None or rs_rating < RS_RATING_THRESHOLD:
+            print(f"   Skipping {ticker}: RS rating {rs_rating} < {RS_RATING_THRESHOLD}")
+            continue
+
+        # -------------------------------
+        # Sector Relative Strength Filter (sector vs SPY)
+        # -------------------------------
+        if SECTOR_RS_ENABLED:
+            from utils.sector_utils import sector_is_leading
+            if not sector_is_leading(ticker, days=SECTOR_RS_LOOKBACK_DAYS, as_of_date=as_of_date):
+                print(f"   Skipping {ticker}: Sector underperforming SPY")
+                continue
+
+        # -------------------------------
+        # Earnings date filter - HIGH IMPACT #3 (SKIP IN BACKTEST MODE)
+        # -------------------------------
+        # Only check earnings in live mode; skip in backtesting to avoid API issues
+        if as_of_date is None:
+            from utils.earnings_utils import is_near_earnings
+            if is_near_earnings(ticker, as_of_date=as_of_date, days_buffer=EARNINGS_BUFFER_DAYS):
+                print(f"   Skipping {ticker}: Within {EARNINGS_BUFFER_DAYS} days of earnings")
+                continue
+
+        # -------------------------------
+        # Gap filter - LOWER IMPACT #10
+        # -------------------------------
+        if strategy in ["52-Week High", "Consolidation Breakout"]:
+            if len(df) >= 2:
+                prev_close = df["Close"].iloc[-2]
+                today_open = df["Open"].iloc[-1]
+                gap_pct = ((today_open - prev_close) / prev_close) * 100
+
+                if gap_pct > MAX_GAP_UP_PCT:
+                    print(f"   Skipping {ticker}: Large gap up ({gap_pct:.1f}%)")
+                    continue
+
+        # -------------------------------
+        # Weekly trend confirmation - MEDIUM IMPACT #7
+        # -------------------------------
+        if strategy in ["52-Week High", "Consolidation Breakout"]:
+            from utils.weekly_data_utils import check_weekly_trend_alignment
+            if not check_weekly_trend_alignment(ticker, as_of_date=as_of_date):
+                print(f"   Skipping {ticker}: Weekly trend not aligned")
+                continue
+
+        # -------------------------------
         # Liquidity filter (from config)
         # -------------------------------
         avg_dollar_vol = (df["Close"] * df["Volume"]).rolling(20).mean().iloc[-1]
@@ -166,6 +228,12 @@ def pre_buy_check(combined_signals, rr_ratio=None, benchmark="SPY", as_of_date=N
             stop = entry - 1.2 * atr
 
         target = entry + rr_ratio * (entry - stop)
+
+        # -------------------------------
+        # ATR-based position sizing (2-3x ATR guideline from research)
+        # -------------------------------
+        suggested_shares = int(CAPITAL_PER_TRADE / entry)
+        risk_per_share = atr * ATR_POSITION_MULTIPLIER
 
         # -------------------------------
         # EMA strategy extra filters
@@ -197,6 +265,9 @@ def pre_buy_check(combined_signals, rr_ratio=None, benchmark="SPY", as_of_date=N
             "Entry": round(entry, 2),
             "StopLoss": round(stop, 2),
             "Target": round(target, 2),
+            "ATR": round(atr, 2),
+            "SuggestedShares": suggested_shares,
+            "RiskPerShare": round(risk_per_share, 2),
             "Score": s.get("Score", 0),
             "NormalizedScore": norm_score,
         })

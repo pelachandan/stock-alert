@@ -1,0 +1,504 @@
+Symbol,Sector,SectorETF
+MMM,Industrials,XLI
+AOS,Industrials,XLI
+ABT,Health Care,XLV
+ABBV,Health Care,XLV
+ACN,Information Technology,XLK
+ADBE,Information Technology,XLK
+AMD,Information Technology,XLK
+AES,Utilities,XLU
+AFL,Financials,XLF
+A,Health Care,XLV
+APD,Materials,XLB
+ABNB,Consumer Discretionary,XLY
+AKAM,Information Technology,XLK
+ALB,Materials,XLB
+ARE,Real Estate,XLRE
+ALGN,Health Care,XLV
+ALLE,Industrials,XLI
+LNT,Utilities,XLU
+ALL,Financials,XLF
+GOOGL,Communication Services,XLC
+GOOG,Communication Services,XLC
+MO,Consumer Staples,XLP
+AMZN,Consumer Discretionary,XLY
+AMCR,Materials,XLB
+AEE,Utilities,XLU
+AEP,Utilities,XLU
+AXP,Financials,XLF
+AIG,Financials,XLF
+AMT,Real Estate,XLRE
+AWK,Utilities,XLU
+AMP,Financials,XLF
+AME,Industrials,XLI
+AMGN,Health Care,XLV
+APH,Information Technology,XLK
+ADI,Information Technology,XLK
+AON,Financials,XLF
+APA,Energy,XLE
+APO,Financials,XLF
+AAPL,Information Technology,XLK
+AMAT,Information Technology,XLK
+APTV,Consumer Discretionary,XLY
+ACGL,Financials,XLF
+ADM,Consumer Staples,XLP
+ANET,Information Technology,XLK
+AJG,Financials,XLF
+AIZ,Financials,XLF
+T,Communication Services,XLC
+ATO,Utilities,XLU
+ADSK,Information Technology,XLK
+ADP,Industrials,XLI
+AZO,Consumer Discretionary,XLY
+AVB,Real Estate,XLRE
+AVY,Materials,XLB
+AXON,Industrials,XLI
+BKR,Energy,XLE
+BALL,Materials,XLB
+BAC,Financials,XLF
+BAX,Health Care,XLV
+BDX,Health Care,XLV
+BRK.B,Financials,XLF
+BBY,Consumer Discretionary,XLY
+TECH,Health Care,XLV
+BIIB,Health Care,XLV
+BLK,Financials,XLF
+BX,Financials,XLF
+XYZ,Financials,XLF
+BK,Financials,XLF
+BA,Industrials,XLI
+BKNG,Consumer Discretionary,XLY
+BSX,Health Care,XLV
+BMY,Health Care,XLV
+AVGO,Information Technology,XLK
+BR,Industrials,XLI
+BRO,Financials,XLF
+BF.B,Consumer Staples,XLP
+BLDR,Industrials,XLI
+BG,Consumer Staples,XLP
+BXP,Real Estate,XLRE
+CHRW,Industrials,XLI
+CDNS,Information Technology,XLK
+CZR,Consumer Discretionary,XLY
+CPT,Real Estate,XLRE
+CPB,Consumer Staples,XLP
+COF,Financials,XLF
+CAH,Health Care,XLV
+KMX,Consumer Discretionary,XLY
+CCL,Consumer Discretionary,XLY
+CARR,Industrials,XLI
+CAT,Industrials,XLI
+CBOE,Financials,XLF
+CBRE,Real Estate,XLRE
+CDW,Information Technology,XLK
+COR,Health Care,XLV
+CNC,Health Care,XLV
+CNP,Utilities,XLU
+CF,Materials,XLB
+CRL,Health Care,XLV
+SCHW,Financials,XLF
+CHTR,Communication Services,XLC
+CVX,Energy,XLE
+CMG,Consumer Discretionary,XLY
+CB,Financials,XLF
+CHD,Consumer Staples,XLP
+CI,Health Care,XLV
+CINF,Financials,XLF
+CTAS,Industrials,XLI
+CSCO,Information Technology,XLK
+C,Financials,XLF
+CFG,Financials,XLF
+CLX,Consumer Staples,XLP
+CME,Financials,XLF
+CMS,Utilities,XLU
+KO,Consumer Staples,XLP
+CTSH,Information Technology,XLK
+COIN,Financials,XLF
+CL,Consumer Staples,XLP
+CMCSA,Communication Services,XLC
+CAG,Consumer Staples,XLP
+COP,Energy,XLE
+ED,Utilities,XLU
+STZ,Consumer Staples,XLP
+CEG,Utilities,XLU
+COO,Health Care,XLV
+CPRT,Industrials,XLI
+GLW,Information Technology,XLK
+CPAY,Financials,XLF
+CTVA,Materials,XLB
+CSGP,Real Estate,XLRE
+COST,Consumer Staples,XLP
+CTRA,Energy,XLE
+CRWD,Information Technology,XLK
+CCI,Real Estate,XLRE
+CSX,Industrials,XLI
+CMI,Industrials,XLI
+CVS,Health Care,XLV
+DHR,Health Care,XLV
+DRI,Consumer Discretionary,XLY
+DDOG,Information Technology,XLK
+DVA,Health Care,XLV
+DAY,Industrials,XLI
+DECK,Consumer Discretionary,XLY
+DE,Industrials,XLI
+DELL,Information Technology,XLK
+DAL,Industrials,XLI
+DVN,Energy,XLE
+DXCM,Health Care,XLV
+FANG,Energy,XLE
+DLR,Real Estate,XLRE
+DG,Consumer Staples,XLP
+DLTR,Consumer Staples,XLP
+D,Utilities,XLU
+DPZ,Consumer Discretionary,XLY
+DASH,Consumer Discretionary,XLY
+DOV,Industrials,XLI
+DOW,Materials,XLB
+DHI,Consumer Discretionary,XLY
+DTE,Utilities,XLU
+DUK,Utilities,XLU
+DD,Materials,XLB
+EMN,Materials,XLB
+ETN,Industrials,XLI
+EBAY,Consumer Discretionary,XLY
+ECL,Materials,XLB
+EIX,Utilities,XLU
+EW,Health Care,XLV
+EA,Communication Services,XLC
+ELV,Health Care,XLV
+EMR,Industrials,XLI
+ENPH,Information Technology,XLK
+ETR,Utilities,XLU
+EOG,Energy,XLE
+EPAM,Information Technology,XLK
+EQT,Energy,XLE
+EFX,Industrials,XLI
+EQIX,Real Estate,XLRE
+EQR,Real Estate,XLRE
+ERIE,Financials,XLF
+ESS,Real Estate,XLRE
+EL,Consumer Staples,XLP
+EG,Financials,XLF
+EVRG,Utilities,XLU
+ES,Utilities,XLU
+EXC,Utilities,XLU
+EXE,Energy,XLE
+EXPE,Consumer Discretionary,XLY
+EXPD,Industrials,XLI
+EXR,Real Estate,XLRE
+XOM,Energy,XLE
+FFIV,Information Technology,XLK
+FDS,Financials,XLF
+FICO,Information Technology,XLK
+FAST,Industrials,XLI
+FRT,Real Estate,XLRE
+FDX,Industrials,XLI
+FIS,Financials,XLF
+FITB,Financials,XLF
+FSLR,Information Technology,XLK
+FE,Utilities,XLU
+FI,Financials,XLF
+F,Consumer Discretionary,XLY
+FTNT,Information Technology,XLK
+FTV,Industrials,XLI
+FOXA,Communication Services,XLC
+FOX,Communication Services,XLC
+BEN,Financials,XLF
+FCX,Materials,XLB
+GRMN,Consumer Discretionary,XLY
+IT,Information Technology,XLK
+GE,Industrials,XLI
+GEHC,Health Care,XLV
+GEV,Industrials,XLI
+GEN,Information Technology,XLK
+GNRC,Industrials,XLI
+GD,Industrials,XLI
+GIS,Consumer Staples,XLP
+GM,Consumer Discretionary,XLY
+GPC,Consumer Discretionary,XLY
+GILD,Health Care,XLV
+GPN,Financials,XLF
+GL,Financials,XLF
+GDDY,Information Technology,XLK
+GS,Financials,XLF
+HAL,Energy,XLE
+HIG,Financials,XLF
+HAS,Consumer Discretionary,XLY
+HCA,Health Care,XLV
+DOC,Real Estate,XLRE
+HSIC,Health Care,XLV
+HSY,Consumer Staples,XLP
+HPE,Information Technology,XLK
+HLT,Consumer Discretionary,XLY
+HOLX,Health Care,XLV
+HD,Consumer Discretionary,XLY
+HON,Industrials,XLI
+HRL,Consumer Staples,XLP
+HST,Real Estate,XLRE
+HWM,Industrials,XLI
+HPQ,Information Technology,XLK
+HUBB,Industrials,XLI
+HUM,Health Care,XLV
+HBAN,Financials,XLF
+HII,Industrials,XLI
+IBM,Information Technology,XLK
+IEX,Industrials,XLI
+IDXX,Health Care,XLV
+ITW,Industrials,XLI
+INCY,Health Care,XLV
+IR,Industrials,XLI
+PODD,Health Care,XLV
+INTC,Information Technology,XLK
+ICE,Financials,XLF
+IFF,Materials,XLB
+IP,Materials,XLB
+IPG,Communication Services,XLC
+INTU,Information Technology,XLK
+ISRG,Health Care,XLV
+IVZ,Financials,XLF
+INVH,Real Estate,XLRE
+IQV,Health Care,XLV
+IRM,Real Estate,XLRE
+JBHT,Industrials,XLI
+JBL,Information Technology,XLK
+JKHY,Financials,XLF
+J,Industrials,XLI
+JNJ,Health Care,XLV
+JCI,Industrials,XLI
+JPM,Financials,XLF
+K,Consumer Staples,XLP
+KVUE,Consumer Staples,XLP
+KDP,Consumer Staples,XLP
+KEY,Financials,XLF
+KEYS,Information Technology,XLK
+KMB,Consumer Staples,XLP
+KIM,Real Estate,XLRE
+KMI,Energy,XLE
+KKR,Financials,XLF
+KLAC,Information Technology,XLK
+KHC,Consumer Staples,XLP
+KR,Consumer Staples,XLP
+LHX,Industrials,XLI
+LH,Health Care,XLV
+LRCX,Information Technology,XLK
+LW,Consumer Staples,XLP
+LVS,Consumer Discretionary,XLY
+LDOS,Industrials,XLI
+LEN,Consumer Discretionary,XLY
+LII,Industrials,XLI
+LLY,Health Care,XLV
+LIN,Materials,XLB
+LYV,Communication Services,XLC
+LKQ,Consumer Discretionary,XLY
+LMT,Industrials,XLI
+L,Financials,XLF
+LOW,Consumer Discretionary,XLY
+LULU,Consumer Discretionary,XLY
+LYB,Materials,XLB
+MTB,Financials,XLF
+MPC,Energy,XLE
+MKTX,Financials,XLF
+MAR,Consumer Discretionary,XLY
+MMC,Financials,XLF
+MLM,Materials,XLB
+MAS,Industrials,XLI
+MA,Financials,XLF
+MTCH,Communication Services,XLC
+MKC,Consumer Staples,XLP
+MCD,Consumer Discretionary,XLY
+MCK,Health Care,XLV
+MDT,Health Care,XLV
+MRK,Health Care,XLV
+META,Communication Services,XLC
+MET,Financials,XLF
+MTD,Health Care,XLV
+MGM,Consumer Discretionary,XLY
+MCHP,Information Technology,XLK
+MU,Information Technology,XLK
+MSFT,Information Technology,XLK
+MAA,Real Estate,XLRE
+MRNA,Health Care,XLV
+MHK,Consumer Discretionary,XLY
+MOH,Health Care,XLV
+TAP,Consumer Staples,XLP
+MDLZ,Consumer Staples,XLP
+MPWR,Information Technology,XLK
+MNST,Consumer Staples,XLP
+MCO,Financials,XLF
+MS,Financials,XLF
+MOS,Materials,XLB
+MSI,Information Technology,XLK
+MSCI,Financials,XLF
+NDAQ,Financials,XLF
+NTAP,Information Technology,XLK
+NFLX,Communication Services,XLC
+NEM,Materials,XLB
+NWSA,Communication Services,XLC
+NWS,Communication Services,XLC
+NEE,Utilities,XLU
+NKE,Consumer Discretionary,XLY
+NI,Utilities,XLU
+NDSN,Industrials,XLI
+NSC,Industrials,XLI
+NTRS,Financials,XLF
+NOC,Industrials,XLI
+NCLH,Consumer Discretionary,XLY
+NRG,Utilities,XLU
+NUE,Materials,XLB
+NVDA,Information Technology,XLK
+NVR,Consumer Discretionary,XLY
+NXPI,Information Technology,XLK
+ORLY,Consumer Discretionary,XLY
+OXY,Energy,XLE
+ODFL,Industrials,XLI
+OMC,Communication Services,XLC
+ON,Information Technology,XLK
+OKE,Energy,XLE
+ORCL,Information Technology,XLK
+OTIS,Industrials,XLI
+PCAR,Industrials,XLI
+PKG,Materials,XLB
+PLTR,Information Technology,XLK
+PANW,Information Technology,XLK
+PSKY,Communication Services,XLC
+PH,Industrials,XLI
+PAYX,Industrials,XLI
+PAYC,Industrials,XLI
+PYPL,Financials,XLF
+PNR,Industrials,XLI
+PEP,Consumer Staples,XLP
+PFE,Health Care,XLV
+PCG,Utilities,XLU
+PM,Consumer Staples,XLP
+PSX,Energy,XLE
+PNW,Utilities,XLU
+PNC,Financials,XLF
+POOL,Consumer Discretionary,XLY
+PPG,Materials,XLB
+PPL,Utilities,XLU
+PFG,Financials,XLF
+PG,Consumer Staples,XLP
+PGR,Financials,XLF
+PLD,Real Estate,XLRE
+PRU,Financials,XLF
+PEG,Utilities,XLU
+PTC,Information Technology,XLK
+PSA,Real Estate,XLRE
+PHM,Consumer Discretionary,XLY
+PWR,Industrials,XLI
+QCOM,Information Technology,XLK
+DGX,Health Care,XLV
+RL,Consumer Discretionary,XLY
+RJF,Financials,XLF
+RTX,Industrials,XLI
+O,Real Estate,XLRE
+REG,Real Estate,XLRE
+REGN,Health Care,XLV
+RF,Financials,XLF
+RSG,Industrials,XLI
+RMD,Health Care,XLV
+RVTY,Health Care,XLV
+ROK,Industrials,XLI
+ROL,Industrials,XLI
+ROP,Information Technology,XLK
+ROST,Consumer Discretionary,XLY
+RCL,Consumer Discretionary,XLY
+SPGI,Financials,XLF
+CRM,Information Technology,XLK
+SBAC,Real Estate,XLRE
+SLB,Energy,XLE
+STX,Information Technology,XLK
+SRE,Utilities,XLU
+NOW,Information Technology,XLK
+SHW,Materials,XLB
+SPG,Real Estate,XLRE
+SWKS,Information Technology,XLK
+SJM,Consumer Staples,XLP
+SW,Materials,XLB
+SNA,Industrials,XLI
+SOLV,Health Care,XLV
+SO,Utilities,XLU
+LUV,Industrials,XLI
+SWK,Industrials,XLI
+SBUX,Consumer Discretionary,XLY
+STT,Financials,XLF
+STLD,Materials,XLB
+STE,Health Care,XLV
+SYK,Health Care,XLV
+SMCI,Information Technology,XLK
+SYF,Financials,XLF
+SNPS,Information Technology,XLK
+SYY,Consumer Staples,XLP
+TMUS,Communication Services,XLC
+TROW,Financials,XLF
+TTWO,Communication Services,XLC
+TPR,Consumer Discretionary,XLY
+TRGP,Energy,XLE
+TGT,Consumer Staples,XLP
+TEL,Information Technology,XLK
+TDY,Information Technology,XLK
+TER,Information Technology,XLK
+TSLA,Consumer Discretionary,XLY
+TXN,Information Technology,XLK
+TPL,Energy,XLE
+TXT,Industrials,XLI
+TMO,Health Care,XLV
+TJX,Consumer Discretionary,XLY
+TKO,Communication Services,XLC
+TTD,Communication Services,XLC
+TSCO,Consumer Discretionary,XLY
+TT,Industrials,XLI
+TDG,Industrials,XLI
+TRV,Financials,XLF
+TRMB,Information Technology,XLK
+TFC,Financials,XLF
+TYL,Information Technology,XLK
+TSN,Consumer Staples,XLP
+USB,Financials,XLF
+UBER,Industrials,XLI
+UDR,Real Estate,XLRE
+ULTA,Consumer Discretionary,XLY
+UNP,Industrials,XLI
+UAL,Industrials,XLI
+UPS,Industrials,XLI
+URI,Industrials,XLI
+UNH,Health Care,XLV
+UHS,Health Care,XLV
+VLO,Energy,XLE
+VTR,Real Estate,XLRE
+VLTO,Industrials,XLI
+VRSN,Information Technology,XLK
+VRSK,Industrials,XLI
+VZ,Communication Services,XLC
+VRTX,Health Care,XLV
+VTRS,Health Care,XLV
+VICI,Real Estate,XLRE
+V,Financials,XLF
+VST,Utilities,XLU
+VMC,Materials,XLB
+WRB,Financials,XLF
+GWW,Industrials,XLI
+WAB,Industrials,XLI
+WBA,Consumer Staples,XLP
+WMT,Consumer Staples,XLP
+DIS,Communication Services,XLC
+WBD,Communication Services,XLC
+WM,Industrials,XLI
+WAT,Health Care,XLV
+WEC,Utilities,XLU
+WFC,Financials,XLF
+WELL,Real Estate,XLRE
+WST,Health Care,XLV
+WDC,Information Technology,XLK
+WY,Real Estate,XLRE
+WSM,Consumer Discretionary,XLY
+WMB,Energy,XLE
+WTW,Financials,XLF
+WDAY,Information Technology,XLK
+WYNN,Consumer Discretionary,XLY
+XEL,Utilities,XLU
+XYL,Industrials,XLI
+YUM,Consumer Discretionary,XLY
+ZBRA,Information Technology,XLK
+ZBH,Health Care,XLV
+ZTS,Health Care,XLV
