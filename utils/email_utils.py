@@ -104,7 +104,8 @@ def send_email_alert(
     rs_list=None,
     subject_prefix="📊 Market Summary",
     html_body=None,
-    position_tracker=None,  # 🆕 NEW parameter
+    position_tracker=None,
+    action_signals=None,  # 🆕 NEW parameter for exit/action alerts
 ):
     """
     Sends simplified HTML email with:
@@ -124,6 +125,83 @@ def send_email_alert(
         else:
             body_html = "<h1>📊 Daily Market Scan - Actionable Trades</h1>"
             body_html += f"<p><strong>Config:</strong> 2:1 R/R, ADX≥24, RSI 50-66, Vol≥1.4x | {datetime.now().strftime('%Y-%m-%d')}</p>"
+
+        # 🚨 ACTION SIGNALS (HIGHEST PRIORITY - SHOW FIRST)
+        if action_signals:
+            exits = action_signals.get('exits', [])
+            partials = action_signals.get('partials', [])
+            pyramids = action_signals.get('pyramids', [])
+            warnings = action_signals.get('warnings', [])
+
+            total_actions = len(exits) + len(partials) + len(pyramids)
+
+            if total_actions > 0:
+                body_html += "<hr style='border: 3px solid red;'>"
+                body_html += f"<h1 style='color: red;'>🚨 ACTION REQUIRED: {total_actions} SIGNAL(S)</h1>"
+
+                # EXITS (Most Urgent)
+                if exits:
+                    body_html += "<h2 style='color: red;'>🚨 IMMEDIATE EXITS ({}) - ACTION REQUIRED</h2>".format(len(exits))
+                    body_html += "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse:collapse; width:100%;'>"
+                    body_html += "<tr style='background-color:#ffcccc;'>"
+                    body_html += "<th>Ticker</th><th>Exit Type</th><th>Reason</th><th>Action</th><th>Current R</th><th>Days</th><th>Entry $</th><th>Current $</th></tr>"
+
+                    for exit_sig in exits:
+                        urgency_color = "#ff0000" if exit_sig['urgency'] == 'IMMEDIATE' else "#ff9999"
+                        body_html += f"<tr style='background-color:{urgency_color};'>"
+                        body_html += f"<td><strong>{exit_sig['ticker']}</strong></td>"
+                        body_html += f"<td>{exit_sig['type']}</td>"
+                        body_html += f"<td>{exit_sig['reason']}</td>"
+                        body_html += f"<td><strong>{exit_sig['action']}</strong></td>"
+                        body_html += f"<td>{exit_sig['current_r']:+.2f}R</td>"
+                        body_html += f"<td>{exit_sig['days_held']}d</td>"
+                        body_html += f"<td>${exit_sig['entry_price']:.2f}</td>"
+                        body_html += f"<td>${exit_sig['current_price']:.2f}</td>"
+                        body_html += "</tr>"
+
+                    body_html += "</table><br>"
+
+                # PARTIAL PROFITS
+                if partials:
+                    body_html += "<h2 style='color: green;'>💰 PARTIAL PROFIT TARGETS ({}) - TAKE PROFITS</h2>".format(len(partials))
+                    body_html += "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse:collapse; width:100%;'>"
+                    body_html += "<tr style='background-color:#ccffcc;'>"
+                    body_html += "<th>Ticker</th><th>Reason</th><th>Action</th><th>Current R</th><th>Days</th><th>Entry $</th><th>Current $</th></tr>"
+
+                    for partial in partials:
+                        body_html += "<tr style='background-color:#e6ffe6;'>"
+                        body_html += f"<td><strong>{partial['ticker']}</strong></td>"
+                        body_html += f"<td>{partial['reason']}</td>"
+                        body_html += f"<td><strong>{partial['action']}</strong></td>"
+                        body_html += f"<td>+{partial['current_r']:.2f}R</td>"
+                        body_html += f"<td>{partial['days_held']}d</td>"
+                        body_html += f"<td>${partial['entry_price']:.2f}</td>"
+                        body_html += f"<td>${partial['current_price']:.2f}</td>"
+                        body_html += "</tr>"
+
+                    body_html += "</table><br>"
+
+                # PYRAMID OPPORTUNITIES
+                if pyramids:
+                    body_html += "<h2 style='color: blue;'>📈 PYRAMID OPPORTUNITIES ({}) - ADD TO WINNERS</h2>".format(len(pyramids))
+                    body_html += "<table border='1' cellpadding='6' cellspacing='0' style='border-collapse:collapse; width:100%;'>"
+                    body_html += "<tr style='background-color:#cce5ff;'>"
+                    body_html += "<th>Ticker</th><th>Reason</th><th>Action</th><th>Current R</th><th>Days</th><th>Entry $</th><th>Current $</th></tr>"
+
+                    for pyramid in pyramids:
+                        body_html += "<tr style='background-color:#e6f2ff;'>"
+                        body_html += f"<td><strong>{pyramid['ticker']}</strong></td>"
+                        body_html += f"<td>{pyramid['reason']}</td>"
+                        body_html += f"<td><strong>{pyramid['action']}</strong></td>"
+                        body_html += f"<td>+{pyramid['current_r']:.2f}R</td>"
+                        body_html += f"<td>{pyramid['days_held']}d</td>"
+                        body_html += f"<td>${pyramid['entry_price']:.2f}</td>"
+                        body_html += f"<td>${pyramid['current_price']:.2f}</td>"
+                        body_html += "</tr>"
+
+                    body_html += "</table><br>"
+
+                body_html += "<hr style='border: 3px solid red;'>"
 
         # 🆕 Show Open Positions (if any)
         if position_tracker:
@@ -213,7 +291,12 @@ def send_email_alert(
     receiver = os.getenv("EMAIL_RECEIVER")
     password = os.getenv("EMAIL_PASSWORD")
 
+    # Update subject if there are urgent actions
     subject = f"{subject_prefix} – {datetime.now().strftime('%Y-%m-%d')}"
+    if action_signals:
+        total_actions = len(action_signals.get('exits', [])) + len(action_signals.get('partials', []))
+        if total_actions > 0:
+            subject = f"🚨 ACTION REQUIRED ({total_actions}) – {subject}"
 
     # Build MIME email
     msg = MIMEText(body_html, "html")

@@ -14,6 +14,7 @@ from scanners.scanner_walkforward import run_scan_as_of
 from core.pre_buy_check import pre_buy_check
 from utils.email_utils import send_email_alert
 from utils.position_tracker import PositionTracker, filter_trades_by_position
+from utils.position_monitor import monitor_positions
 from utils.market_data import get_historical_data
 from config.trading_config import (
     POSITION_MAX_TOTAL,
@@ -71,21 +72,74 @@ if __name__ == "__main__":
         print("\n⚠️  BEARISH MARKET - No new positions will be entered")
         print("📧 Sending status email...\n")
 
+        # Monitor existing positions even in bearish market
+        action_signals = {'exits': [], 'partials': [], 'pyramids': [], 'warnings': []}
+        if position_tracker.get_position_count() > 0:
+            action_signals = monitor_positions(position_tracker)
+
         # Send email with current positions only
         send_email_alert(
             trade_df=pd.DataFrame(),
             all_signals=[],
             subject_prefix="⚠️ BEARISH MARKET - No New Trades",
-            position_tracker=position_tracker
+            position_tracker=position_tracker,
+            action_signals=action_signals
         )
         exit(0)
 
     # --------------------------------------------------
-    # Step 2: Show Current Open Positions
+    # Step 2: Monitor Open Positions for Exits/Actions
     # --------------------------------------------------
     print(f"\n📊 Current Open Positions: {position_tracker.get_position_count()}/{POSITION_MAX_TOTAL}")
+
+    action_signals = {'exits': [], 'partials': [], 'pyramids': [], 'warnings': []}
+
     if position_tracker.get_position_count() > 0:
         print(position_tracker)
+
+        print("\n" + "="*80)
+        print("🔍 MONITORING POSITIONS FOR EXIT/ACTION SIGNALS...")
+        print("="*80)
+
+        action_signals = monitor_positions(position_tracker)
+
+        # Display action signals
+        total_actions = len(action_signals['exits']) + len(action_signals['partials']) + len(action_signals['pyramids'])
+
+        if total_actions > 0:
+            print(f"\n⚠️  {total_actions} ACTION(S) REQUIRED:\n")
+
+            # Exits (highest priority)
+            if action_signals['exits']:
+                print(f"🚨 EXITS ({len(action_signals['exits'])}):")
+                for exit_sig in action_signals['exits']:
+                    print(f"   {exit_sig['ticker']}: {exit_sig['type']} - {exit_sig['reason']}")
+                    print(f"   → {exit_sig['action']}")
+                    print()
+
+            # Partial profits
+            if action_signals['partials']:
+                print(f"💰 PARTIAL PROFITS ({len(action_signals['partials'])}):")
+                for partial in action_signals['partials']:
+                    print(f"   {partial['ticker']}: {partial['reason']}")
+                    print(f"   → {partial['action']}")
+                    print()
+
+            # Pyramid opportunities
+            if action_signals['pyramids']:
+                print(f"📈 PYRAMID OPPORTUNITIES ({len(action_signals['pyramids'])}):")
+                for pyramid in action_signals['pyramids']:
+                    print(f"   {pyramid['ticker']}: {pyramid['reason']}")
+                    print(f"   → {pyramid['action']}")
+                    print()
+        else:
+            print("\n✅ No exit/action signals - all positions healthy")
+
+        # Display warnings (FYI only)
+        if action_signals['warnings']:
+            print(f"\n⚠️  Warnings ({len(action_signals['warnings'])}):")
+            for warning in action_signals['warnings']:
+                print(f"   {warning.get('message', warning.get('ticker', 'Unknown'))}")
 
     # Count positions per strategy
     strategy_counts = {}
@@ -177,7 +231,8 @@ if __name__ == "__main__":
         trade_df=trade_ready,
         all_signals=signals if signals else [],
         subject_prefix="📊 Position Trading Scan",
-        position_tracker=position_tracker
+        position_tracker=position_tracker,
+        action_signals=action_signals
     )
 
     print("✅ Email sent successfully!")
