@@ -115,8 +115,15 @@ def send_email_alert(
     if html_body:
         body_html = html_body
     else:
-        body_html = "<h1>📊 Daily Market Scan - Actionable Trades</h1>"
-        body_html += f"<p><strong>Config:</strong> 2:1 R/R, ADX≥24, RSI 50-66, Vol≥1.4x | {datetime.now().strftime('%Y-%m-%d')}</p>"
+        # Detect if this is position trading
+        is_position_trading = not trade_df.empty and "Priority" in trade_df.columns
+
+        if is_position_trading:
+            body_html = "<h1>📊 Position Trading Scanner - Long-Term Setups</h1>"
+            body_html += f"<p><strong>Config:</strong> 2% risk/trade, 60-150 day holds, RS≥30%, ADX≥30, Vol≥2.5x | {datetime.now().strftime('%Y-%m-%d')}</p>"
+        else:
+            body_html = "<h1>📊 Daily Market Scan - Actionable Trades</h1>"
+            body_html += f"<p><strong>Config:</strong> 2:1 R/R, ADX≥24, RSI 50-66, Vol≥1.4x | {datetime.now().strftime('%Y-%m-%d')}</p>"
 
         # 🆕 Show Open Positions (if any)
         if position_tracker:
@@ -145,15 +152,28 @@ def send_email_alert(
 
         # Actionable Trades Only
         if not trade_df.empty:
-            # Select columns for actionable trades
-            action_cols = ["Ticker", "Strategy", "Entry", "StopLoss", "Target",
-                           "ATR", "SuggestedShares", "FinalScore", "Expectancy"]
+            # Detect if this is position trading or short-term trading
+            is_position_trading = "Priority" in trade_df.columns and "MaxDays" in trade_df.columns
+
+            if is_position_trading:
+                # Position trading columns
+                action_cols = ["Ticker", "Strategy", "Entry", "StopLoss", "Target",
+                               "Score", "Priority", "MaxDays", "Direction"]
+                score_col = "Score"
+                title_prefix = "🎯 POSITION TRADES"
+            else:
+                # Short-term trading columns (old system)
+                action_cols = ["Ticker", "Strategy", "Entry", "StopLoss", "Target",
+                               "ATR", "SuggestedShares", "FinalScore", "Expectancy"]
+                score_col = "FinalScore"
+                title_prefix = "🔥 ACTIONABLE TRADES"
+
             action_df = trade_df[[c for c in action_cols if c in trade_df.columns]]
 
             body_html += df_to_html_table(
                 action_df,
-                score_column="FinalScore",
-                title=f"🔥 ACTIONABLE TRADES ({len(action_df)} stocks)",
+                score_column=score_col,
+                title=f"{title_prefix} ({len(action_df)} stocks)",
                 max_rows=None  # Show all actionable trades
             )
         else:
