@@ -229,6 +229,14 @@ MIN_HOLDING_DAYS = 0                     # No minimum for position trading
 CATASTROPHIC_LOSS_THRESHOLD = 999        # Stop loss only
 MAX_ENTRY_GAP_PCT = 999                  # No gap filter for position trading
 
+# Legacy pre_buy_check.py constants (for backward compatibility)
+ADX_THRESHOLD = 30                       # Now UNIVERSAL_ADX_MIN
+RSI_MIN = 30                             # Old RSI filter (not used in position trading)
+RSI_MAX = 70                             # Old RSI filter (not used in position trading)
+VOLUME_MULTIPLIER = 2.5                  # Now UNIVERSAL_VOLUME_MULT
+PRICE_ABOVE_EMA20_MIN = 0.95             # Old EMA filter (not used in position trading)
+PRICE_ABOVE_EMA20_MAX = 1.10             # Old EMA filter (not used in position trading)
+
 # =============================================================================
 # NOTES
 # =============================================================================
