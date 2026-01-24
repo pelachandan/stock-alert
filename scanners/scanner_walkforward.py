@@ -67,6 +67,7 @@ from config.trading_config import (
     BIGBASE_MIN_WEEKS,
     BIGBASE_MAX_RANGE_PCT,
     BIGBASE_VOLUME_MULT,
+    BIGBASE_STOP_ATR_MULT,
     BIGBASE_MAX_DAYS,
 
     # Strategy 6: TrendContinuation_Position
@@ -555,9 +556,8 @@ def run_scan_as_of(as_of_date, tickers):
                     # RELAXED: Removed all_mas_rising filter (was too restrictive - only 1 trade in 3+ years)
                     if all([is_tight_base, above_200ma, positive_rs,
                            is_breakout, volume_surge, strong_adx]):
-                        # Stop: Below base low - 1.5x weekly ATR
-                        weekly_atr = atr14.iloc[-1] * 1.5
-                        stop_price = base_low - (1.5 * weekly_atr)
+                        # Stop: ATR-based from entry (aligned with backtester)
+                        stop_price = last_close - (BIGBASE_STOP_ATR_MULT * atr20.iloc[-1])
 
                         # Quality score (HIGH - this is rare!)
                         score = 80  # Base score
