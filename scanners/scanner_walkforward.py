@@ -66,6 +66,7 @@ from config.trading_config import (
     # Strategy 5: BigBase_Breakout_Position
     BIGBASE_MIN_WEEKS,
     BIGBASE_MAX_RANGE_PCT,
+    BIGBASE_RS_MIN,
     BIGBASE_VOLUME_MULT,
     BIGBASE_STOP_ATR_MULT,
     BIGBASE_MAX_DAYS,
@@ -517,32 +518,26 @@ def run_scan_as_of(as_of_date, tickers):
         # =====================================================================
         # STRATEGY 5: BIGBASE_BREAKOUT_POSITION (ACTIVE - RARE HOME RUNS)
         # =====================================================================
-        # Entry: 20+ week consolidation (≤25% range), 6-mo high breakout, 2.5x vol, ADX 30+
+        # Entry: 16+ week consolidation (≤18% range), 6-mo high breakout, RS 20%+, 2.5x vol, ADX 30+
         # =====================================================================
-        if is_bull_regime and len(df) >= 140:  # 20 weeks * 5 days + buffer
+        if is_bull_regime and len(df) >= 140:  # 16+ weeks * 5 days + buffer
             try:
-                # VOLATILITY FILTER (Skip overly volatile stocks prone to whipsaw)
-                daily_returns = close.pct_change()
-                volatility_20d = daily_returns.rolling(20).std().iloc[-1] if len(daily_returns) >= 20 else 0
-                if volatility_20d > 0.04:  # More than 4% daily volatility
-                    continue  # Too volatile, skip
-
-                # Check 20-week (100-day) base
+                # Check 16-week (80-day) base
                 lookback_days = BIGBASE_MIN_WEEKS * 5
                 if len(df) >= lookback_days:
                     base_high = high.iloc[-lookback_days:].max()
                     base_low = low.iloc[-lookback_days:].min()
                     base_range_pct = (base_high - base_low) / base_low
 
-                    # Tight base (≤25% range)
+                    # Tight base (≤18% range - true consolidation)
                     is_tight_base = base_range_pct <= BIGBASE_MAX_RANGE_PCT
 
                     # MULTI-MONTH TREND FILTERS
                     # Base must be above 200-day MA (long-term uptrend)
                     above_200ma = last_close > ma200.iloc[-1]
 
-                    # RS requirement - keep lower for base breakouts (special case)
-                    positive_rs = rs_6mo is not None and rs_6mo >= 0.10
+                    # RS requirement - leaders only (20%+ outperformance)
+                    strong_rs = rs_6mo is not None and rs_6mo >= BIGBASE_RS_MIN
 
                     # New 6-month high breakout
                     high_6mo = high.rolling(126).max().iloc[-1]
@@ -554,7 +549,7 @@ def run_scan_as_of(as_of_date, tickers):
                     volume_surge = vol_ratio >= UNIVERSAL_VOLUME_MULT  # 2.5x minimum
 
                     # RELAXED: Removed all_mas_rising filter (was too restrictive - only 1 trade in 3+ years)
-                    if all([is_tight_base, above_200ma, positive_rs,
+                    if all([is_tight_base, above_200ma, strong_rs,
                            is_breakout, volume_surge, strong_adx]):
                         # Stop: ATR-based from entry (aligned with backtester)
                         stop_price = last_close - (BIGBASE_STOP_ATR_MULT * atr20.iloc[-1])
