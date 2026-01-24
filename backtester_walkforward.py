@@ -527,26 +527,24 @@ class WalkForwardBacktester:
         shares = position['current_shares']
         days_held = position['days_held']
 
-        # Calculate P&L - CORRECTED for pyramiding
-        # Calculate P&L for initial position
-        initial_shares = position['initial_shares']
+        # Calculate P&L - Use weighted average entry price for current shares
+        # This correctly handles partial exits and pyramiding
 
+        # Calculate weighted average entry price across all entries (initial + pyramids)
+        cost_basis = position['initial_shares'] * position['entry_price']
+        total_shares_entered = position['initial_shares']
+
+        for add in position['pyramid_adds']:
+            cost_basis += add['shares'] * add['price']
+            total_shares_entered += add['shares']
+
+        avg_entry_price = cost_basis / total_shares_entered if total_shares_entered > 0 else entry
+
+        # Calculate P&L for CURRENT shares (accounts for partial exits)
         if direction == "LONG":
-            pnl = initial_shares * (exit_price - entry)
-
-            # Add P&L from pyramid adds (each at their own entry price)
-            for add in position['pyramid_adds']:
-                add_shares = add['shares']
-                add_price = add['price']
-                pnl += add_shares * (exit_price - add_price)
+            pnl = shares * (exit_price - avg_entry_price)
         else:
-            pnl = initial_shares * (entry - exit_price)
-
-            # Add P&L from pyramid adds (each at their own entry price)
-            for add in position['pyramid_adds']:
-                add_shares = add['shares']
-                add_price = add['price']
-                pnl += add_shares * (add_price - exit_price)
+            pnl = shares * (avg_entry_price - exit_price)
 
         outcome = "Win" if pnl > 0 else "Loss"
 
