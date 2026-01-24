@@ -139,10 +139,10 @@ HIGH52_POS_MAX_DAYS = 150                 # Max 150 days (EXTENDED - was 120)
 # 5. BIGBASE_BREAKOUT_POSITION (60-120 DAYS) - NEW
 # =============================================================================
 
-BIGBASE_MIN_WEEKS = 16                    # Minimum 16 weeks consolidation (TRUE BASE - was 12)
-BIGBASE_MAX_RANGE_PCT = 0.18              # Max 18% range (HH-LL)/LL (TIGHT BASE - was 0.35)
+BIGBASE_MIN_WEEKS = 14                    # Minimum 14 weeks consolidation (BALANCED - was 16)
+BIGBASE_MAX_RANGE_PCT = 0.20              # Max 20% range (HH-LL)/LL (BALANCED - was 0.18)
 BIGBASE_RS_MIN = 0.20                     # Minimum 20% RS vs QQQ (LEADERS ONLY - was 0.10)
-BIGBASE_VOLUME_MULT = 2.5                 # Volume ≥ 2.5× 50-day avg (HIGHER - was 2.0)
+BIGBASE_VOLUME_MULT = 1.8                 # 5-day avg ≥ 1.8× 50-day avg (SUSTAINED - was 2.5 single-day)
 BIGBASE_STOP_ATR_MULT = 4.5               # Stop: entry - 4.5× ATR(20) (WIDER - was 3.5)
 BIGBASE_PARTIAL_R = 4.0                   # Partial at 4R (HOME RUN - was 2.5R)
 BIGBASE_PARTIAL_SIZE = 0.3                # 30% (runner = 70%)

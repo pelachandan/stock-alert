@@ -471,14 +471,25 @@ class WalkForwardBacktester:
                         position['closes_below_trail'] = 0
 
         elif strategy == "BigBase_Breakout_Position":
-            # BigBase: Trail with MA200 (widest), 10 closes below
-            if ma200 and pd.notna(ma200):
-                if current_close < ma200:
-                    position['closes_below_trail'] += 1
-                    if position['closes_below_trail'] >= BIGBASE_TRAIL_DAYS:
-                        return self._close_position(position, current_date, current_close, "MA200_Trail", current_r)
-                else:
-                    position['closes_below_trail'] = 0
+            # BigBase: HYBRID TRAIL - EMA21 early (cut failed breakouts), MA200 late (home runs)
+            if days_held <= 45:
+                # First 45 days: Tight EMA21 trail (cut failed breakouts fast)
+                if ema21 and pd.notna(ema21):
+                    if current_close < ema21:
+                        position['closes_below_trail'] += 1
+                        if position['closes_below_trail'] >= 5:
+                            return self._close_position(position, current_date, current_close, "EMA21_Trail_Early", current_r)
+                    else:
+                        position['closes_below_trail'] = 0
+            else:
+                # After 45 days: Loose MA200 trail (let home runs develop)
+                if ma200 and pd.notna(ma200):
+                    if current_close < ma200:
+                        position['closes_below_trail'] += 1
+                        if position['closes_below_trail'] >= 10:
+                            return self._close_position(position, current_date, current_close, "MA200_Trail_Late", current_r)
+                    else:
+                        position['closes_below_trail'] = 0
 
         elif strategy == "TrendContinuation_Position":
             if ma50 and pd.notna(ma50):

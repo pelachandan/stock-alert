@@ -518,11 +518,11 @@ def run_scan_as_of(as_of_date, tickers):
         # =====================================================================
         # STRATEGY 5: BIGBASE_BREAKOUT_POSITION (ACTIVE - RARE HOME RUNS)
         # =====================================================================
-        # Entry: 16+ week consolidation (≤18% range), 6-mo high breakout, RS 20%+, 2.5x vol, ADX 30+
+        # Entry: 14+ week consolidation (≤20% range), 6-mo high breakout, RS 20%+, 1.8x 5-day vol, ADX 30+
         # =====================================================================
-        if is_bull_regime and len(df) >= 140:  # 16+ weeks * 5 days + buffer
+        if is_bull_regime and len(df) >= 140:  # 14+ weeks * 5 days + buffer
             try:
-                # Check 16-week (80-day) base
+                # Check 14-week (70-day) base
                 lookback_days = BIGBASE_MIN_WEEKS * 5
                 if len(df) >= lookback_days:
                     base_high = high.iloc[-lookback_days:].max()
@@ -543,10 +543,11 @@ def run_scan_as_of(as_of_date, tickers):
                     high_6mo = high.rolling(126).max().iloc[-1]
                     is_breakout = last_close >= high_6mo * 0.998
 
-                    # UNIVERSAL FILTERS (STRONGER)
+                    # Volume confirmation: 5-day average (sustained, not spike)
                     avg_vol_50d = volume.rolling(50).mean().iloc[-1] if len(volume) >= 50 else avg_vol_20d
-                    vol_ratio = volume.iloc[-1] / max(avg_vol_50d, 1)
-                    volume_surge = vol_ratio >= UNIVERSAL_VOLUME_MULT  # 2.5x minimum
+                    vol_5d_avg = volume.iloc[-5:].mean() if len(volume) >= 5 else volume.iloc[-1]
+                    vol_ratio = vol_5d_avg / max(avg_vol_50d, 1)
+                    volume_surge = vol_ratio >= BIGBASE_VOLUME_MULT  # 1.8x 5-day avg (avoids blow-offs)
 
                     # RELAXED: Removed all_mas_rising filter (was too restrictive - only 1 trade in 3+ years)
                     if all([is_tight_base, above_200ma, strong_rs,
