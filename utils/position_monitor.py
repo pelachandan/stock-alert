@@ -241,9 +241,15 @@ def monitor_positions(position_tracker):
                 position_tracker._save_positions()
 
             # =====================================================
-            # 4. CHECK TIME STOP
+            # 4. CHECK TIME STOP (Skip for pyramided positions)
             # =====================================================
-            if days_held >= max_days:
+            # Pyramided positions = proven winners, managed by trail stops only
+            pyramid_adds = pos.get('pyramid_adds', 0)
+            # Handle both integer (live) and list (shouldn't happen, but safe)
+            pyramid_count = len(pyramid_adds) if isinstance(pyramid_adds, list) else pyramid_adds
+            has_pyramids = pyramid_count > 0
+
+            if not has_pyramids and days_held >= max_days:
                 exits.append({
                     'ticker': ticker,
                     'type': f'TIME_STOP_{max_days}d',

@@ -521,9 +521,14 @@ class WalkForwardBacktester:
                     else:
                         position['closes_below_trail'] = 0
 
-        # Time stop
-        if days_held >= max_days:
+        # Time stop (SKIP for pyramided positions - let trail stops manage winners)
+        has_pyramids = len(position['pyramid_adds']) > 0
+
+        if not has_pyramids and days_held >= max_days:
+            # Only apply time stop to non-pyramided positions
             return self._close_position(position, current_date, current_close, f"TimeStop_{max_days}d", current_r)
+
+        # Pyramided positions: No time limit, managed by trail stops only
 
         return None  # Continue holding
 
