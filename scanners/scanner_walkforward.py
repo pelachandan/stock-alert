@@ -518,7 +518,8 @@ def run_scan_as_of(as_of_date, tickers):
         # =====================================================================
         # STRATEGY 5: BIGBASE_BREAKOUT_POSITION (ACTIVE - RARE HOME RUNS)
         # =====================================================================
-        # Entry: 14+ week consolidation (≤20% range), 6-mo high breakout, RS 20%+, 1.8x 5-day vol, ADX 30+
+        # Entry: 14+ week consolidation (≤20% range), 6-mo high breakout, RS 20%+, 1.8x 5-day vol
+        # Note: NO ADX requirement (consolidations have low ADX by definition)
         # =====================================================================
         if is_bull_regime and len(df) >= 140:  # 14+ weeks * 5 days + buffer
             try:
@@ -549,9 +550,10 @@ def run_scan_as_of(as_of_date, tickers):
                     vol_ratio = vol_5d_avg / max(avg_vol_50d, 1)
                     volume_surge = vol_ratio >= BIGBASE_VOLUME_MULT  # 1.8x 5-day avg (avoids blow-offs)
 
-                    # RELAXED: Removed all_mas_rising filter (was too restrictive - only 1 trade in 3+ years)
+                    # RELAXED: Removed all_mas_rising and ADX filters
+                    # ADX is LOW during consolidation, rises AFTER breakout (catches it too late)
                     if all([is_tight_base, above_200ma, strong_rs,
-                           is_breakout, volume_surge, strong_adx]):
+                           is_breakout, volume_surge]):
                         # Stop: ATR-based from entry (aligned with backtester)
                         stop_price = last_close - (BIGBASE_STOP_ATR_MULT * atr20.iloc[-1])
 
