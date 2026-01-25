@@ -33,10 +33,10 @@ POSITION_MAX_TOTAL = 20            # Max 20 total positions (focused on 3 strate
 
 # Per-Strategy Position Limits (FOCUSED ON PROVEN WINNERS ONLY)
 POSITION_MAX_PER_STRATEGY = {
-    # ACTIVE STRATEGIES (3 proven winners)
-    "RelativeStrength_Ranker_Position": 10,   # Best: 50% WR, 1.20R, $193k profit
-    "High52_Position": 6,                      # Best: 73% WR, 1.74R, $18k profit
-    "BigBase_Breakout_Position": 4,           # Best: 100% WR, 0.48R, $3.6k profit
+    # ACTIVE STRATEGIES (2 active, 1 testing)
+    "RelativeStrength_Ranker_Position": 10,   # PROVEN: 47.5% WR, 2.04R, $362k profit
+    "High52_Position": 6,                      # TESTING: Ultra-selective filters (30% RS, 2.5x vol, ADX 30+)
+    "BigBase_Breakout_Position": 0,           # DISABLED: 10% WR, negative expectancy
 
     # DISABLED STRATEGIES (broken - churning or insufficient data)
     "EMA_Crossover_Position": 0,              # 1 trade only, -1.00R
@@ -126,8 +126,9 @@ PERCENT_B_POS_MAX_DAYS = 90
 # 4. HIGH52_POSITION (60-120 DAYS)
 # =============================================================================
 
-HIGH52_POS_RS_MIN = 0.20                  # Minimum 20% RS vs QQQ (STRONG - was 0.30)
-HIGH52_POS_VOLUME_MULT = 1.8              # 5-day avg ≥ 1.8× 50-day avg (SUSTAINED - was 2.5 single-day)
+HIGH52_POS_RS_MIN = 0.30                  # Minimum 30% RS vs QQQ (LEADERS ONLY - was 0.20)
+HIGH52_POS_VOLUME_MULT = 2.5              # Single-day ≥ 2.5× 50-day avg (CONVICTION - was 1.8 5-day avg)
+HIGH52_POS_ADX_MIN = 30                   # Minimum ADX(14) >= 30 for momentum confirmation
 HIGH52_POS_STOP_ATR_MULT = 4.5            # Stop: entry - 4.5× ATR(20) (WIDER - was 3.5)
 HIGH52_POS_PARTIAL_R = 2.5                # Partial at 2.5R
 HIGH52_POS_PARTIAL_SIZE = 0.3             # 30% (runner = 70%)

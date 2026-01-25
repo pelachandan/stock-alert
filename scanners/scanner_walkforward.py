@@ -60,6 +60,7 @@ from config.trading_config import (
     # Strategy 4: High52_Position
     HIGH52_POS_RS_MIN,
     HIGH52_POS_VOLUME_MULT,
+    HIGH52_POS_ADX_MIN,
     HIGH52_POS_STOP_ATR_MULT,
     HIGH52_POS_MAX_DAYS,
 
@@ -459,10 +460,11 @@ def run_scan_as_of(as_of_date, tickers):
                 pass
 
         # =====================================================================
-        # STRATEGY 4: HIGH52_POSITION (ACTIVE)
+        # STRATEGY 4: HIGH52_POSITION (ULTRA-SELECTIVE)
         # =====================================================================
-        # Entry: 20% RS, new 52-week high, 1.8x 5-day vol, stacked MAs
-        # Note: NO ADX or volatility filters (breakouts SHOULD be volatile)
+        # Entry: 30% RS (leaders only), new 52-week high, 2.5x volume explosion,
+        #        ADX 30+, stacked MAs
+        # Goal: Catch ONLY high-conviction breakouts, not exhaustion tops
         # =====================================================================
         if is_bull_regime and len(df) >= 252 and rs_6mo is not None:
             try:
@@ -476,22 +478,24 @@ def run_scan_as_of(as_of_date, tickers):
                 high_52w = high.rolling(252).max().iloc[-1]
                 is_new_52w_high = last_close >= high_52w * 0.998  # Within 0.2%
 
-                # RS requirement - strong performers (20%+ outperformance)
+                # RS requirement - LEADERS ONLY (30%+ outperformance)
                 strong_rs = rs_6mo >= HIGH52_POS_RS_MIN
 
-                # Volume confirmation: 5-day average (sustained, not spike)
+                # Volume EXPLOSION (single-day conviction, not 5-day avg)
                 avg_vol_50d = volume.rolling(50).mean().iloc[-1] if len(volume) >= 50 else avg_vol_20d
-                vol_5d_avg = volume.iloc[-5:].mean() if len(volume) >= 5 else volume.iloc[-1]
-                vol_ratio = vol_5d_avg / max(avg_vol_50d, 1)
-                volume_surge = vol_ratio >= HIGH52_POS_VOLUME_MULT  # 1.8x 5-day avg (sustained interest)
+                vol_ratio = volume.iloc[-1] / max(avg_vol_50d, 1)
+                volume_surge = vol_ratio >= HIGH52_POS_VOLUME_MULT  # 2.5x single-day
 
-                # RELAXED: Removed volatility, ADX, and all_mas_rising filters
-                if all([stacked_mas, is_new_52w_high, strong_rs, volume_surge]):
+                # ADX confirmation (momentum strength)
+                has_momentum = adx14.iloc[-1] >= HIGH52_POS_ADX_MIN if not pd.isna(adx14.iloc[-1]) else False
+
+                # ULTRA-SELECTIVE: All filters must pass
+                if all([stacked_mas, is_new_52w_high, strong_rs, volume_surge, has_momentum]):
                     # Stop
                     stop_price = last_close - (HIGH52_POS_STOP_ATR_MULT * atr20.iloc[-1])
 
                     # Quality score
-                    score = min(rs_6mo / 0.20 * 50, 70)  # Max 70
+                    score = min(rs_6mo / 0.30 * 50, 70)  # Max 70 (adjusted for 30% threshold)
                     score += min((vol_ratio / HIGH52_POS_VOLUME_MULT) * 30, 30)
 
                     signals.append({
