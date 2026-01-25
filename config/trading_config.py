@@ -43,6 +43,9 @@ POSITION_MAX_PER_STRATEGY = {
     "TrendContinuation_Position": 0,          # 30.4% WR unacceptable, churning
     "MeanReversion_Position": 0,              # 0.26R avg, 135 trades churning
     "%B_MeanReversion_Position": 0,           # 0.05R avg, essentially breakeven
+
+    # EXPERIMENTAL SHORT STRATEGY (disabled by default - testing phase)
+    "ShortWeakRS_Retrace_Position": 0,        # EXPERIMENTAL: Not yet backtested
 }
 
 # Fallback for compatibility
@@ -272,3 +275,75 @@ EXPECTED OUTCOMES:
 • 60-120 day average holding period
 • Target: 100k → 300-400k over 3-4 years
 """
+
+# =============================================================================
+# SHORT STRATEGY CONFIGURATION (EXPERIMENTAL - DISABLED BY DEFAULT)
+# =============================================================================
+
+"""
+SHORT STRATEGY: ShortWeakRS_Retrace_Position
+============================================
+Counter-trend short strategy for bull/sideways markets.
+Targets weak stocks (low RS) that rally into resistance and fail.
+
+CONCEPT:
+--------
+• Only run in bull/sideways markets (not deep bear)
+• Short weak stocks (RS ≤ -15%) that rally to 50-MA and reject
+• Take partial profits at +2.5R, trail remainder with EMA21
+• Hard time stop at 45 days (don't sit short forever in bull market)
+• Max 30% portfolio exposure to shorts (remain long-biased)
+
+ENTRY CONDITIONS:
+-----------------
+1. Market: QQQ above rising 100-MA (bull/sideways)
+2. Stock: Price < declining 100-MA (downtrend)
+3. Weakness: RS ≤ -15% vs QQQ (underperforming)
+4. Rally: High touches 50-MA but close below
+5. Rejection: RSI 55-65 (mild overbought in downtrend)
+
+EXIT CONDITIONS:
+----------------
+1. Stop Loss: Above recent swing high or 50-MA + 3× ATR
+2. Partial: 40% at +2.5R
+3. Trail: 3 consecutive closes above EMA21 (inverted)
+4. Time: Hard stop at 45 days
+
+RISK MANAGEMENT:
+----------------
+• Lower risk per trade: 1.5% (vs 2.0% for longs)
+• Max positions: 5 concurrent shorts
+• Max exposure: 30% of equity
+• No shorts on tickers already held long
+"""
+
+# Main switch (DISABLED by default - enable only after thorough backtesting)
+SHORT_ENABLED = False
+
+# Portfolio limits
+SHORT_MAX_POSITIONS = 5                 # Max 5 concurrent short positions
+SHORT_MAX_EQUITY_PCT = 0.30             # Max 30% of equity in shorts (remain long-biased)
+SHORT_RISK_PER_TRADE_PCT = 1.5          # 1.5% risk per short (lower than longs)
+
+# Entry filters
+SHORT_RS_MAX = -0.15                    # RS ≤ -15% (weak vs QQQ)
+SHORT_MA_PERIOD = 100                   # Price < declining 100-MA
+SHORT_MA_DECLINING_DAYS = 10            # MA must be declining over 10 days
+SHORT_REJECTION_MA = 50                 # Rally to 50-MA rejection point
+SHORT_REJECTION_TOLERANCE = 0.02        # Within 2% of 50-MA counts as "touch"
+SHORT_REJECTION_RSI_MIN = 55            # RSI 55-65 for rally rejection
+SHORT_REJECTION_RSI_MAX = 65
+
+# Position sizing & stops
+SHORT_STOP_ATR_MULT = 3.0               # Stop: entry + 3× ATR(14) (tighter than longs)
+SHORT_STOP_BUFFER_ATR = 0.5             # Additional buffer above swing high
+
+# Exit rules
+SHORT_PARTIAL_R = 2.5                   # Partial profit at +2.5R
+SHORT_PARTIAL_SIZE = 0.4                # 40% partial (more aggressive than longs)
+SHORT_TRAIL_EMA = 21                    # Trail with 21-EMA
+SHORT_TRAIL_DAYS = 3                    # Exit if 3 consecutive closes above EMA21
+SHORT_MAX_DAYS = 45                     # Hard time stop at 45 days
+
+# Strategy priority (lowest - shorts filled after all longs)
+STRATEGY_PRIORITY["ShortWeakRS_Retrace_Position"] = 100

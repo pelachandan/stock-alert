@@ -67,6 +67,13 @@ from config.trading_config import (
     RS_RANKER_TRAIL_MA,
     RS_RANKER_TRAIL_DAYS,
 
+    # Short strategy (experimental)
+    SHORT_ENABLED,
+    SHORT_PARTIAL_R,
+    SHORT_PARTIAL_SIZE,
+    SHORT_TRAIL_DAYS,
+    SHORT_MAX_DAYS,
+
     # Backtest settings
     BACKTEST_START_DATE,
     BACKTEST_SCAN_FREQUENCY,
@@ -305,6 +312,12 @@ class WalkForwardBacktester:
                         partial_trigger = f"{RS_RANKER_PARTIAL_R}R"
                         partial_size = RS_RANKER_PARTIAL_SIZE
 
+                elif strategy == "ShortWeakRS_Retrace_Position":
+                    if current_r >= SHORT_PARTIAL_R:  # +2.5R for shorts
+                        should_partial = True
+                        partial_trigger = f"{SHORT_PARTIAL_R}R"
+                        partial_size = SHORT_PARTIAL_SIZE  # 40% partial (more aggressive)
+
                 if should_partial:
                     position['partial_exited'] = True
                     partial_shares = int(position['current_shares'] * partial_size)
@@ -520,6 +533,17 @@ class WalkForwardBacktester:
                             return self._close_position(position, current_date, current_close, "MA100_Trail_Late", current_r)
                     else:
                         position['closes_below_trail'] = 0
+
+        elif strategy == "ShortWeakRS_Retrace_Position":
+            # SHORT strategy: Trail with EMA21 (INVERTED - exit if price rises above)
+            # For shorts, we exit if price closes ABOVE trail (opposite of longs)
+            if ema21 and pd.notna(ema21):
+                if current_close > ema21:  # Price rising above trail = exit short
+                    position['closes_below_trail'] += 1
+                    if position['closes_below_trail'] >= SHORT_TRAIL_DAYS:  # Default 3 days
+                        return self._close_position(position, current_date, current_close, "EMA21_Trail_Short", current_r)
+                else:
+                    position['closes_below_trail'] = 0
 
         # Time stop (SKIP for pyramided positions - let trail stops manage winners)
         has_pyramids = len(position['pyramid_adds']) > 0

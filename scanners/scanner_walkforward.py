@@ -88,6 +88,19 @@ from config.trading_config import (
     RS_RANKER_RS_THRESHOLD,
     RS_RANKER_STOP_ATR_MULT,
     RS_RANKER_MAX_DAYS,
+
+    # Short Strategy: ShortWeakRS_Retrace_Position (experimental)
+    SHORT_ENABLED,
+    SHORT_RS_MAX,
+    SHORT_MA_PERIOD,
+    SHORT_MA_DECLINING_DAYS,
+    SHORT_REJECTION_MA,
+    SHORT_REJECTION_TOLERANCE,
+    SHORT_REJECTION_RSI_MIN,
+    SHORT_REJECTION_RSI_MAX,
+    SHORT_STOP_ATR_MULT,
+    SHORT_STOP_BUFFER_ATR,
+    SHORT_MAX_DAYS,
 )
 
 
@@ -699,6 +712,84 @@ def run_scan_as_of(as_of_date, tickers):
                             "AsOfDate": as_of_date,
                             "MaxDays": RS_RANKER_MAX_DAYS,
                         })
+            except Exception:
+                pass
+
+        # =====================================================================
+        # STRATEGY 8: SHORT_WEAKRS_RETRACE_POSITION (EXPERIMENTAL)
+        # =====================================================================
+        # Entry: Weak RS (≤ -15%), rally to 50-MA rejection, RSI 55-65
+        # Exit: Partial at +2.5R, trail with EMA21, hard stop at 45 days
+        # Only active in bull/sideways markets (SHORT_ENABLED must be True)
+        # =====================================================================
+        if is_bull_regime and rs_6mo is not None and SHORT_ENABLED and POSITION_MAX_PER_STRATEGY.get("ShortWeakRS_Retrace_Position", 0) > 0:
+            try:
+                # Filter 1: Weak relative strength (underperforming index)
+                weak_rs = rs_6mo <= SHORT_RS_MAX  # RS ≤ -15%
+
+                # Filter 2: Downtrend - price below declining MA
+                if len(df) >= SHORT_MA_PERIOD:
+                    ma_short = close.rolling(SHORT_MA_PERIOD).mean()
+                    below_ma = last_close < ma_short.iloc[-1]
+
+                    # Check if MA is declining over specified days
+                    if len(ma_short) >= SHORT_MA_DECLINING_DAYS:
+                        ma_declining = ma_short.iloc[-1] < ma_short.iloc[-SHORT_MA_DECLINING_DAYS]
+                    else:
+                        ma_declining = False
+                else:
+                    below_ma = False
+                    ma_declining = False
+
+                # Filter 3: Rally to 50-MA with rejection
+                if len(df) >= 50:
+                    ma50_short = close.rolling(50).mean()
+                    ma50_val = ma50_short.iloc[-1]
+
+                    # High touched 50-MA (within tolerance)
+                    high_touched_ma50 = high.iloc[-1] >= ma50_val * (1 - SHORT_REJECTION_TOLERANCE)
+
+                    # Close below 50-MA (rejection)
+                    close_below_ma50 = last_close < ma50_val
+                else:
+                    high_touched_ma50 = False
+                    close_below_ma50 = False
+
+                # Filter 4: Mild overbought RSI in downtrend (rejection signal)
+                current_rsi = rsi14.iloc[-1]
+                rsi_in_range = SHORT_REJECTION_RSI_MIN <= current_rsi <= SHORT_REJECTION_RSI_MAX
+
+                # ALL conditions must be true for short entry
+                if all([weak_rs, below_ma, ma_declining,
+                        high_touched_ma50, close_below_ma50, rsi_in_range]):
+
+                    # Calculate stop loss: Above recent swing high or 50-MA + ATR buffer
+                    recent_high = high.iloc[-5:].max()  # 5-day swing high
+                    ma50_stop = ma50_val if 'ma50_val' in locals() else recent_high
+                    stop_above_resistance = max(recent_high, ma50_stop)
+
+                    # Add ATR buffer above stop
+                    stop_price = stop_above_resistance + (SHORT_STOP_ATR_MULT * atr14.iloc[-1])
+
+                    # Target for partial (entry - 2.5R)
+                    risk_per_share = stop_price - last_close
+                    target_price = last_close - (2.5 * risk_per_share)
+
+                    # Score: Higher for weaker RS (more negative = higher score)
+                    score = abs(rs_6mo) * 100  # -20% RS = 20 score
+
+                    signals.append({
+                        "Ticker": ticker,
+                        "Strategy": "ShortWeakRS_Retrace_Position",
+                        "Entry": last_close,
+                        "StopLoss": stop_price,
+                        "Target": target_price,
+                        "Score": score,
+                        "RS": rs_6mo,
+                        "MaxDays": SHORT_MAX_DAYS,
+                        "Direction": "SHORT",  # Critical: Mark as short position
+                        "Priority": STRATEGY_PRIORITY.get("ShortWeakRS_Retrace_Position", 100),
+                    })
             except Exception:
                 pass
 
